@@ -1,9 +1,13 @@
+#	Linell Bonnette
+#	timothy.bonnette@eagles.usm.edu
+#	CSC 408 - Modified compiler in Python
+
 import sys
 
-norw = 11      #number of reserved words
-txmax = 100   #length of identifier table
-nmax = 14      #max number of digits in number
-al = 10          #length of identifiers
+numberOfReservedWords = 11 #number of reserved words
+identTableLength = 100     #length of identifier table
+maxDigits = 14      	   #max number of digits in number
+identLength = 10           #length of identifiers
 
 a = []
 chars = []
@@ -17,6 +21,9 @@ class tableValue():
         self.name = name
         self.kind = kind
 
+# This function simply returns errors. You could make this pretty darn nifty, if you took the time
+# to *really* understand what all of the errors mean. Personally, I think I'm going to make my
+# compiler a bit of a dick.
 def error(num):
     global errorFlag;
     errorFlag = 1
@@ -70,46 +77,51 @@ def error(num):
         print >>outfile, "The preceding factor cannot be followed by this symbol."
     elif num == 24:
         print >>outfile, "An expression cannot begin with this symbol."
-    elif num ==25:
+    elif num == 25:
         print >>outfile, "Constant or Number is expected."
     elif num == 26: 
         print >>outfile, "This number is too large."
     exit(0)
     
 def getch():
+    """ This gets the next character in the file. """
     global  whichChar, ch, linelen, line;
     if whichChar == linelen:         #if at end of line
         whichChar = 0
         line = infile.readline()     #get next line
         linelen = len(line)
-        sys.stdout.write(line)
+        sys.stdout.write(line)	     # This prints out the line. You can kill this.
     if linelen != 0:
         ch = line[whichChar]
         whichChar += 1
     return ch
         
 def getsym():
-    global charcnt, ch, al, a, norw, rword, sym, nmax, id
+    """ *Dr. Ali stomps his foot* """
+    global charcnt, ch, identLength, a, numberOfReservedWords, rword, sym, maxDigits, id
+    # As long as you're reading something other than a good character, getch()
     while ch == " " or ch == "\n" or ch == "\r":
         getch()
+    # 'a' appears to hold your sym
     a = []
-    if ch.isalpha():
-        k = 0
+    if ch.isalpha(): # If it's part of the alphabet
+        k = 0	# k is not incremented in ch.isalpha()...maybe a bug?
         while True:
             a.append(ch)
             getch()
-            if not ch.isalnum():
+            if not ch.isalnum(): # is not alphanumeric
                 break
-        id = "".join(a)
-        flag = 0
-        for i in range(0, norw):
-            if rword[i] == id:
-                sym = rword[i]
+        id = "".join(a) # concatenates everything into a string
+        flag = 0	# 0 == not a reserved word, 1 == reserved word
+	# Loop through the reserved words and check if the id is a reserved word
+        for i in range(0, numberOfReservedWords):
+            if rword[i] == id:	# if it *is* a reserved word, set the symbol to that
+                sym = rword[i]	# and the flag to reserved word
                 flag = 1
         if  flag == 0:    #sym is not a reserved word
-            sym = "ident"
+            sym = "ident" 
             
-    elif ch.isdigit():
+    elif ch.isdigit(): # If it's a number
         k=0
         num=0
         sym = "number"
@@ -119,11 +131,13 @@ def getsym():
             getch()
             if not ch.isdigit():
                 break
-        if k>nmax:
+        if k>maxDigits:	# If the length of the sym is greated than the max length, error
             error(30)
         else:
-            id = "".join(a)
+            id = "".join(a) # makes a string
     
+    # These cases handle any special characters, and all function the same. When you have a :, >, or <,
+    # it could have two meanings. This block is checking to see what the symbol is supposed to be.
     elif ch == ':':
         getch()
         if ch == '=':
@@ -200,6 +214,7 @@ def vardeclaration(tx):
     
 #-------------BLOCK------------------------------------------------
 def block(tableIndex):
+    """ This is straight from the syntax diagram. """
     tx = [1]
     tx[0] = tableIndex
     global sym, id;
@@ -243,6 +258,7 @@ def block(tableIndex):
 
 #--------------STATEMENT----------------------------------------
 def statement(tx):
+    """ This is straight from the syntax diagram. """
     global sym, id;
     if sym == "ident":
         i = position(tx, id)
@@ -295,6 +311,7 @@ def statement(tx):
 
 #--------------EXPRESSION--------------------------------------
 def expression(tx):
+    """ This is straight from the syntax diagram. """
     global sym;
     if sym == "plus" or sym == "minus":
         getsym()
@@ -308,6 +325,7 @@ def expression(tx):
 
 #-------------TERM----------------------------------------------------
 def term(tx):
+    """ This is straight from the syntax diagram. """
     global sym;
     factor(tx)
     while sym=="times" or sym=="slash":
@@ -316,6 +334,7 @@ def term(tx):
 
 #-------------FACTOR--------------------------------------------------
 def factor(tx):
+    """ This is straight from the syntax diagram. """
     global sym;
     if sym == "ident":
         i = position(tx, id)
@@ -339,6 +358,7 @@ def factor(tx):
 
 #-----------CONDITION-------------------------------------------------
 def condition(tx):
+    """ This is straight from the syntax diagram. """
     global sym;
     if sym == "ODD":
         getsym()
@@ -354,6 +374,8 @@ def condition(tx):
     
 #-------------------MAIN PROGRAM------------------------------------------------------------#
 
+# This is where all of the reserved words are added. Make sure that these
+# are in alphabetical order.
 rword.append('BEGIN')
 rword.append('CALL')
 rword.append('CONST')
@@ -366,6 +388,8 @@ rword.append('THEN')
 rword.append('VAR')
 rword.append('WHILE')
 
+# This holds all of your symbols. I do believe that ssym stands for 'system symbol',
+# but I may be wrong. Regardless, we know what it's doing.
 ssym = {'+' : "plus",
              '-' : "minus",
              '*' : "times",       
@@ -388,18 +412,21 @@ charcnt = 0
 whichChar = 0
 linelen = 0
 ch = ' '
-kk = al                
+kk = identLength                
 a = []
 id= '     '
 errorFlag = 0
-table.append(0)    #making the first position in the symbol table empty
+		   # The table is the table that holds all of our variables.
+table.append(0)    # The first position is made empty so that we can search using it.
 sym = ' '            
 
-infile =    sys.stdin       #path to input file
-outfile =  sys.stdout     #path to output file, will create if doesn't already exist
+#path to input file
+infile = open('pre_mod_test_case.pas', 'r')
+#path to output file, will create if doesn't already exist 
+outfile =  sys.stdout     	
 
-getsym()            #get first symbol
-block(0)             #call block initializing with a table index of zero
+getsym()	#get first symbol
+block(0)        #call block initializing with a table index of zero
 
 if sym != "period":      #period expected after block is completed
     error(9)
