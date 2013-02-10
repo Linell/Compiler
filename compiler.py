@@ -2,9 +2,18 @@
 #	timothy.bonnette@eagles.usm.edu
 #	CSC 408 - Modified compiler in Python
 
+# TO BE ADDED:
+#       - If Else
+#       - Repeat Until
+#       - For To or Downto
+#       - Case Of
+#       - Write
+#       - Writeln
+#       - Restricted global variables
+
 import sys
 
-numberOfReservedWords = 11 #number of reserved words
+numberOfReservedWords = 12 #number of reserved words
 identTableLength = 100     #length of identifier table
 maxDigits = 14      	   #max number of digits in number
 identLength = 10           #length of identifiers
@@ -177,13 +186,19 @@ def position(tx, k):
         i=i-1
     return i
 #---------------ENTER PROCEDURE-------------------------------
+# I believe that the enter procedure is inserting things into the table.
+# tx is the index at which an item is inserted, and k is its 'type'.
 def enter(tx, k):
     global id;
-    tx[0] += 1
-    while (len(table) > tx[0]):
-      table.pop()
-    x = tableValue(id, k)
-    table.append(x)
+    tx[0] += 1                      # Increment the table index.
+    while (len(table) > tx[0]):     # While I understand the code....I have no idea why this is happening.
+      table.pop()                   
+    x = tableValue(id, k)           # Creates a new instance of the tableValue class, and sets
+                                    # id as the name and k as the kind.
+    table.append(x)     # Appends x to the table at the newest position ... Best I can figure is that the 
+                        # while statement is pretty much 'garbage detection' in that it's 'deleting' everything
+                        # that's after the specified index. I suppose that means that you *can't* insert anything
+                        # after the last table index that you want. I could be completely wrong though.
 #--------------CONST DECLARATION---------------------------
 def constdeclaration(tx):
     global sym, id;
@@ -214,22 +229,25 @@ def vardeclaration(tx):
     
 #-------------BLOCK------------------------------------------------
 def block(tableIndex):
-    """ This is straight from the syntax diagram. """
+    # tx is a one item long list..why?
     tx = [1]
+    # Block is initialized with a table index (tx) of zero.
     tx[0] = tableIndex
     global sym, id;
+    # Remember that whenever a block is called, we already have
+    # a symbol held in sym.
     if sym == "CONST":
-        while True:               #makeshift do while in python
-            getsym()
-            constdeclaration(tx)
-            if sym != "comma":
+        while True:               # Makeshift do while in python
+            getsym()              # This will *always* run the first getsym() and declare a constant.
+            constdeclaration(tx)  # constdeclaration will handle the part that gets the next sym and such.
+            if sym != "comma":    # If it doesn't detect a comma, it pops back out to look for a semicolon.
                 break
         if sym != "semicolon":
             error(10);
-        getsym()
+        getsym()                  # Remember to get the symbol before you leave.
     
-    if sym == "VAR":
-        while True:
+    if sym == "VAR":              
+        while True:               # Another makeshift do while.
             getsym()
             vardeclaration(tx)
             if sym != "comma":
@@ -253,12 +271,11 @@ def block(tableIndex):
         if sym != "semicolon":
             error(10)
         getsym()
-    
+    # Restricted globals will go here.
     statement(tx[0])
 
 #--------------STATEMENT----------------------------------------
 def statement(tx):
-    """ This is straight from the syntax diagram. """
     global sym, id;
     if sym == "ident":
         i = position(tx, id)
@@ -283,6 +300,7 @@ def statement(tx):
             error(15)
         getsym()
     
+    # The basic 'IF' statement.
     elif sym == "IF":
         getsym()
         condition(tx)
@@ -290,6 +308,12 @@ def statement(tx):
             error(16)
         getsym()
         statement(tx)
+        # Adding the Else statement here
+        # Works just fine.
+        if sym == "ELSE":
+            getsym()
+            statement(tx)
+        # Finished adding.
     
     elif sym == "BEGIN":
         while True:
@@ -311,7 +335,6 @@ def statement(tx):
 
 #--------------EXPRESSION--------------------------------------
 def expression(tx):
-    """ This is straight from the syntax diagram. """
     global sym;
     if sym == "plus" or sym == "minus":
         getsym()
@@ -325,7 +348,6 @@ def expression(tx):
 
 #-------------TERM----------------------------------------------------
 def term(tx):
-    """ This is straight from the syntax diagram. """
     global sym;
     factor(tx)
     while sym=="times" or sym=="slash":
@@ -334,7 +356,6 @@ def term(tx):
 
 #-------------FACTOR--------------------------------------------------
 def factor(tx):
-    """ This is straight from the syntax diagram. """
     global sym;
     if sym == "ident":
         i = position(tx, id)
@@ -358,7 +379,6 @@ def factor(tx):
 
 #-----------CONDITION-------------------------------------------------
 def condition(tx):
-    """ This is straight from the syntax diagram. """
     global sym;
     if sym == "ODD":
         getsym()
@@ -375,11 +395,13 @@ def condition(tx):
 #-------------------MAIN PROGRAM------------------------------------------------------------#
 
 # This is where all of the reserved words are added. Make sure that these
-# are in alphabetical order.
+# are in alphabetical order. Make sure to increase numberOfReservedWords. I've added:
+#   ELSE 
 rword.append('BEGIN')
 rword.append('CALL')
 rword.append('CONST')
 rword.append('DO')
+rword.append('ELSE')
 rword.append('END')
 rword.append('IF')
 rword.append('ODD')
@@ -387,6 +409,7 @@ rword.append('PROCEDURE')
 rword.append('THEN')
 rword.append('VAR')
 rword.append('WHILE')
+
 
 # This holds all of your symbols. I do believe that ssym stands for 'system symbol',
 # but I may be wrong. Regardless, we know what it's doing.
@@ -425,8 +448,8 @@ infile = open('pre_mod_test_case.pas', 'r')
 #path to output file, will create if doesn't already exist 
 outfile =  sys.stdout     	
 
-getsym()	#get first symbol
-block(0)        #call block initializing with a table index of zero
+getsym()	# get first symbol
+block(0)        # call block initializing with a table index of zero
 
 if sym != "period":      #period expected after block is completed
     error(9)
