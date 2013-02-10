@@ -3,8 +3,6 @@
 #	CSC 408 - Modified compiler in Python
 
 # TO BE ADDED:
-#       - If Else
-#       - Repeat Until
 #       - For To or Downto
 #       - Case Of
 #       - Write
@@ -13,7 +11,7 @@
 
 import sys
 
-numberOfReservedWords = 12 #number of reserved words
+numberOfReservedWords = 17 #number of reserved words
 identTableLength = 100     #length of identifier table
 maxDigits = 14      	   #max number of digits in number
 identLength = 10           #length of identifiers
@@ -33,63 +31,65 @@ class tableValue():
 # This function simply returns errors. You could make this pretty darn nifty, if you took the time
 # to *really* understand what all of the errors mean. Personally, I think I'm going to make my
 # compiler a bit of a dick.
-def error(num):
+def error(num, sym):
     global errorFlag;
     errorFlag = 1
     
     print
     if num == 1: 
-        print >>outfile, "Use = instead of :="
+        print >>outfile, "Error on: " + sym + "\nUse = instead of :="
     elif num ==2: 
-        print >>outfile, "= must be followed by a number."
+        print >>outfile, "Error on: " + sym + "\n= must be followed by a number."
     elif num ==3: 
-        print >>outfile, "Identifier must be followed by ="
+        print >>outfile, "Error on: " + sym + "\nIdentifier must be followed by ="
     elif num ==4: 
-        print >>outfile, "Const, Var, Procedure must be followed by an identifier."
+        print >>outfile, "Error on: " + sym + "\nConst, Var, Procedure must be followed by an identifier."
     elif num ==5: 
-        print >>outfile, "Semicolon or comman missing"
+        print >>outfile, "Error on: " + sym + "\nSemicolon or comman missing"
     elif num == 6: 
-        print >>outfile, "Incorrect symbol after procedure declaration."
+        print >>outfile, "Error on: " + sym + "\nIncorrect symbol after procedure declaration."
     elif num == 7:  
-        print >>outfile, "Statement expected."
+        print >>outfile, "Error on: " + sym + "\nStatement expected."
     elif num == 8:
-        print >>outfile, "Incorrect symbol after statment part in block."
+        print >>outfile, "Error on: " + sym + "\nIncorrect symbol after statment part in block."
     elif num == 9:
-        print >>outfile, "Period expected."
+        print >>outfile, "Error on: " + sym + "\nPeriod expected."
     elif num == 10: 
-        print >>outfile, "Semicolon between statements is missing."
+        print >>outfile, "Error on: " + sym + "\nSemicolon between statements is missing."
     elif num == 11:  
-        print >>outfile, "Undeclard identifier"
+        print >>outfile, "Error on: " + sym + "\nUndeclard identifier"
     elif num == 12:
-        print >>outfile, "Assignment to a constant or procedure is not allowed."
+        print >>outfile, "Error on: " + sym + "\nAssignment to a constant or procedure is not allowed."
     elif num == 13:
-        print >>outfile, "Assignment operator := expected."
+        print >>outfile, "Error on: " + sym + "\nAssignment operator := expected."
     elif num == 14: 
-        print >>outfile, "call must be followed by an identifier"
+        print >>outfile, "Error on: " + sym + "\ncall must be followed by an identifier"
     elif num == 15:  
-        print >>outfile, "Call of a constant or a variable is meaningless."
+        print >>outfile, "Error on: " + sym + "\nCall of a constant or a variable is meaningless."
     elif num == 16:
-        print >>outfile, "Then expected"
+        print >>outfile, "Error on: " + sym + "\nThen expected"
     elif num == 17:
-        print >>outfile, "Semicolon or end expected. "
+        print >>outfile, "Error on: " + sym + "\nSemicolon or end expected. "
     elif num == 18: 
-        print >>outfile, "DO expected"
+        print >>outfile, "Error on: " + sym + "\nDO expected"
     elif num == 19:  
-        print >>outfile, "Incorrect symbol following statement"
+        print >>outfile, "Error on: " + sym + "\nIncorrect symbol following statement"
     elif num == 20:
-        print >>outfile, "Relational operator expected."
+        print >>outfile, "Error on: " + sym + "\nRelational operator expected."
     elif num == 21:
-        print >>outfile, "Expression must not contain a procedure identifier"
+        print >>outfile, "Error on: " + sym + "\nExpression must not contain a procedure identifier"
     elif num == 22: 
-        print >>outfile, "Right parenthesis missing"
+        print >>outfile, "Error on: " + sym + "\nRight parenthesis missing"
     elif num == 23:  
-        print >>outfile, "The preceding factor cannot be followed by this symbol."
+        print >>outfile, "Error on: " + sym + "\nThe preceding factor cannot be followed by this symbol."
     elif num == 24:
-        print >>outfile, "An expression cannot begin with this symbol."
+        print >>outfile, "Error on: " + sym + "\nAn expression cannot begin with this symbol."
     elif num == 25:
-        print >>outfile, "Constant or Number is expected."
+        print >>outfile, "Error on: " + sym + "\nConstant or Number is expected."
     elif num == 26: 
-        print >>outfile, "This number is too large."
+        print >>outfile, "Error on: " + sym + "\nThis number is too large."
+    elif num == 27: 
+        print >>outfile, "Error on: " + sym + "\nDo expected after While."
     exit(0)
     
 def getch():
@@ -141,7 +141,7 @@ def getsym():
             if not ch.isdigit():
                 break
         if k>maxDigits:	# If the length of the sym is greated than the max length, error
-            error(30)
+            error(30, sym)
         else:
             id = "".join(a) # makes a string
     
@@ -212,11 +212,11 @@ def constdeclaration(tx):
                 enter(tx, "const")
                 getsym()
             else:
-                error(2)
+                error(2, sym)
         else:
-            error(3)
+            error(3, sym)
     else:
-        error(4)
+        error(4, sym)
 
 #-------------VARIABLE DECLARATION-----------------------------------
 def vardeclaration(tx):
@@ -225,7 +225,7 @@ def vardeclaration(tx):
         enter(tx, "variable")
         getsym()
     else:
-        error(4)
+        error(4, sym)
     
 #-------------BLOCK------------------------------------------------
 def block(tableIndex):
@@ -243,7 +243,7 @@ def block(tableIndex):
             if sym != "comma":    # If it doesn't detect a comma, it pops back out to look for a semicolon.
                 break
         if sym != "semicolon":
-            error(10);
+            error(10, sym);
         getsym()                  # Remember to get the symbol before you leave.
     
     if sym == "VAR":              
@@ -253,7 +253,7 @@ def block(tableIndex):
             if sym != "comma":
                 break
         if sym != "semicolon":
-            error(10)
+            error(10, sym)
         getsym()
     
     while sym == "PROCEDURE":
@@ -262,14 +262,14 @@ def block(tableIndex):
             enter(tx, "procedure")
             getsym()
         else:
-            error(4)
+            error(4, sym)
         if sym != "semicolon":
-            error(10)
+            error(10, sym)
         getsym()
         block(tx[0])
         
         if sym != "semicolon":
-            error(10)
+            error(10, sym)
         getsym()
     # Restricted globals will go here.
     statement(tx[0])
@@ -280,24 +280,24 @@ def statement(tx):
     if sym == "ident":
         i = position(tx, id)
         if i==0:
-            error(11)
+            error(11, sym)
         elif table[i].kind != "variable":
-            error(12)
+            error(12, sym)
         getsym()
         if sym != "becomes":
-            error(13)
+            error(13, sym)
         getsym()
         expression(tx)
         
     elif sym == "CALL":
         getsym()
         if sym != "ident":
-            error(14)
+            error(14, sym)
         i = position(tx, id)
         if i==0:
-            error(11)
+            error(11, sym)
         if table[i].kind != "procedure":
-            error(15)
+            error(15, sym)
         getsym()
     
     # The basic 'IF' statement.
@@ -305,7 +305,7 @@ def statement(tx):
         getsym()
         condition(tx)
         if sym != "THEN":
-            error(16)
+            error(16, sym)
         getsym()
         statement(tx)
         # Adding the Else statement here
@@ -322,16 +322,30 @@ def statement(tx):
             if sym != "semicolon":
                 break
         if sym != "END":
-            error(17)
+            error(17, sym)
         getsym()
     
     elif sym == "WHILE":
         getsym()
         condition(tx)
         if sym != "DO":
-            error(18)
+            error(18, sym)
         getsym()
         statement(tx)
+
+    # Adding the repeat / until
+    elif sym == "REPEAT":
+        while True:
+            getsym()
+            statement(tx)
+            if sym != "semicolon":
+                break
+        if sym != "UNTIL":
+            error(27, sym)
+        getsym()
+        condition(tx)
+    # Ending the repeat / until
+
 
 #--------------EXPRESSION--------------------------------------
 def expression(tx):
@@ -360,7 +374,7 @@ def factor(tx):
     if sym == "ident":
         i = position(tx, id)
         if i==0:
-            error(11)
+            error(11, sym)
         getsym()
     
     elif sym == "number":
@@ -370,12 +384,11 @@ def factor(tx):
         getsym()
         expression(tx)
         if sym != "rparen":
-            error(22)
+            error(22, sym)
         getsym()
     
     else:
-#        print "sym here is: ", sym
-        error(24)
+        error(24, sym)
 
 #-----------CONDITION-------------------------------------------------
 def condition(tx):
@@ -387,7 +400,7 @@ def condition(tx):
     else:
         expression(tx)
         if not (sym in ["eql","neq","lss","leq","gtr","geq"]):
-            error(20)
+            error(20, sym)
         else:
             getsym()
             expression(tx)
@@ -396,17 +409,22 @@ def condition(tx):
 
 # This is where all of the reserved words are added. Make sure that these
 # are in alphabetical order. Make sure to increase numberOfReservedWords. I've added:
-#   ELSE 
+#   ELSE, REPEAT, UNTIL
 rword.append('BEGIN')
 rword.append('CALL')
 rword.append('CONST')
 rword.append('DO')
+rword.append('DOWNTO')
 rword.append('ELSE')
 rword.append('END')
+rword.append('FOR')
 rword.append('IF')
 rword.append('ODD')
 rword.append('PROCEDURE')
+rword.append('REPEAT')
 rword.append('THEN')
+rword.append('TO')
+rword.append('UNTIL')
 rword.append('VAR')
 rword.append('WHILE')
 
@@ -448,11 +466,11 @@ infile = open('pre_mod_test_case.pas', 'r')
 #path to output file, will create if doesn't already exist 
 outfile =  sys.stdout     	
 
-getsym()	# get first symbol
+getsym()	    # get first symbol
 block(0)        # call block initializing with a table index of zero
 
 if sym != "period":      #period expected after block is completed
-    error(9)
+    error(9, sym)
    
 print >> outfile
 if errorFlag == 0:
