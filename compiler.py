@@ -3,7 +3,6 @@
 #	CSC 408 - Modified compiler in Python
 
 # TO BE ADDED:
-#       - For To or Downto
 #       - Case Of
 #       - Write
 #       - Writeln
@@ -11,7 +10,7 @@
 
 import sys
 
-numberOfReservedWords = 17 #number of reserved words
+numberOfReservedWords = 20 #number of reserved words
 identTableLength = 100     #length of identifier table
 maxDigits = 14      	   #max number of digits in number
 identLength = 10           #length of identifiers
@@ -45,7 +44,7 @@ def error(num, sym):
     elif num ==4: 
         print >>outfile, "Error on: " + sym + "\nConst, Var, Procedure must be followed by an identifier."
     elif num ==5: 
-        print >>outfile, "Error on: " + sym + "\nSemicolon or comman missing"
+        print >>outfile, "Error on: " + sym + "\nSemicolon, comma, or colon missing."
     elif num == 6: 
         print >>outfile, "Error on: " + sym + "\nIncorrect symbol after procedure declaration."
     elif num == 7:  
@@ -63,7 +62,7 @@ def error(num, sym):
     elif num == 13:
         print >>outfile, "Error on: " + sym + "\nAssignment operator := expected."
     elif num == 14: 
-        print >>outfile, "Error on: " + sym + "\ncall must be followed by an identifier"
+        print >>outfile, "Error on: " + sym + "\nCall must be followed by an identifier"
     elif num == 15:  
         print >>outfile, "Error on: " + sym + "\nCall of a constant or a variable is meaningless."
     elif num == 16:
@@ -90,6 +89,14 @@ def error(num, sym):
         print >>outfile, "Error on: " + sym + "\nThis number is too large."
     elif num == 27: 
         print >>outfile, "Error on: " + sym + "\nDo expected after While."
+    elif num == 28: 
+        print >>outfile, "Error on: " + sym + "\nThere must be a variable after a For."
+    elif num == 29: 
+        print >>outfile, "Error on: " + sym + "\nFor must be followed by either To or Downto."
+    elif num == 30: 
+        print >>outfile, "Error on: " + sym + "\nCase must be followed by of."
+    elif num == 31: 
+        print >>outfile, "Error on: " + sym + "\nEither CEND, a number, or an identifier."
     exit(0)
     
 def getch():
@@ -346,6 +353,53 @@ def statement(tx):
         condition(tx)
     # Ending the repeat / until
 
+    # For/To|Downto
+    elif sym == "FOR":          
+        getsym()                
+        if sym != "ident":      # This has to be a variable....not sure how to check that.     
+            error(28, sym)
+        getsym()                
+        if sym != "becomes":    
+            error(13, sym)
+        getsym()                
+        expression(tx)          
+        if sym== "TO":          
+            getsym()
+            expression(tx)
+        elif sym == "DOWNTO":
+            getsym()
+            expression(tx)
+        else:
+            error(29, sym)
+        print sym
+        if sym != "DO":
+            error(18, sym)
+        getsym()
+        statement(tx)
+    # End for
+
+    # Case/Of/Cend
+    elif sym == "CASE":
+        getsym()
+        expression(tx)
+        if sym != "OF":
+            error(30, sym)
+        while True:
+            getsym()
+            if sym == "number" or sym == "ident":       # note that ident must be a constant
+                getsym()
+                if sym != "colon":
+                    error(5, sym)
+                getsym()
+                statement(tx)
+                if sym != "semicolon":
+                    error(5, sym)
+            else:
+                break
+        if sym != "CEND":
+            error(31, sym)
+        getsym()
+    # End Case
 
 #--------------EXPRESSION--------------------------------------
 def expression(tx):
@@ -412,6 +466,8 @@ def condition(tx):
 #   ELSE, REPEAT, UNTIL
 rword.append('BEGIN')
 rword.append('CALL')
+rword.append('CASE')
+rword.append('CEND')
 rword.append('CONST')
 rword.append('DO')
 rword.append('DOWNTO')
@@ -420,6 +476,7 @@ rword.append('END')
 rword.append('FOR')
 rword.append('IF')
 rword.append('ODD')
+rword.append('OF')
 rword.append('PROCEDURE')
 rword.append('REPEAT')
 rword.append('THEN')
