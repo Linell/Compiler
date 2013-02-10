@@ -3,14 +3,13 @@
 #	CSC 408 - Modified compiler in Python
 
 # TO BE ADDED:
-#       - Case Of
 #       - Write
 #       - Writeln
 #       - Restricted global variables
 
 import sys
 
-numberOfReservedWords = 20 #number of reserved words
+numberOfReservedWords = 22 #number of reserved words
 identTableLength = 100     #length of identifier table
 maxDigits = 14      	   #max number of digits in number
 identLength = 10           #length of identifiers
@@ -97,6 +96,8 @@ def error(num, sym):
         print >>outfile, "Error on: " + sym + "\nCase must be followed by of."
     elif num == 31: 
         print >>outfile, "Error on: " + sym + "\nEither CEND, a number, or an identifier."
+    elif num == 32: 
+        print >>outfile, "Error on: " + sym + "\nLeft parenthesis missing."
     exit(0)
     
 def getch():
@@ -384,7 +385,7 @@ def statement(tx):
         expression(tx)
         if sym != "OF":
             error(30, sym)
-        while True:
+        while True:             # Actually, I don't think this should be a do while loop.
             getsym()
             if sym == "number" or sym == "ident":       # note that ident must be a constant
                 getsym()
@@ -400,6 +401,25 @@ def statement(tx):
             error(31, sym)
         getsym()
     # End Case
+
+    # 22 - right paren
+    # 32 - left paren
+    # Write/WriteLN
+    elif sym == "WRITE" or sym == "WRITELN":
+        getsym()
+        print "The symbols is " +sym
+        if sym != "lparen":
+            error(32, sym)
+        getsym()
+        print "The symbols is " +sym
+        expression(tx)
+        while sym == "comma":
+            expression(tx)
+        if sym != "rparen":
+            error(22, sym)
+        getsym()
+
+    # End Write
 
 #--------------EXPRESSION--------------------------------------
 def expression(tx):
@@ -463,7 +483,7 @@ def condition(tx):
 
 # This is where all of the reserved words are added. Make sure that these
 # are in alphabetical order. Make sure to increase numberOfReservedWords. I've added:
-#   ELSE, REPEAT, UNTIL
+#   ELSE, REPEAT, UNTIL, CASE, CEND, DO, DOWNTO, FOR
 rword.append('BEGIN')
 rword.append('CALL')
 rword.append('CASE')
@@ -484,6 +504,8 @@ rword.append('TO')
 rword.append('UNTIL')
 rword.append('VAR')
 rword.append('WHILE')
+rword.append('WRITE')
+rword.append('WRITELN')
 
 
 # This holds all of your symbols. I do believe that ssym stands for 'system symbol',
