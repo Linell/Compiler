@@ -2,11 +2,11 @@
 #	timothy.bonnette@eagles.usm.edu
 #	CSC 408 - Modified compiler in Python
 
-# TO BE ADDED:
-#       - Restricted global variables
+
 
 import sys
 
+INPUTFILE = "err1.pas"
 numberOfReservedWords = 22 #number of reserved words
 identTableLength = 100     #length of identifier table
 maxDigits = 14      	   #max number of digits in number
@@ -550,9 +550,11 @@ table.append(0)    # The first position is made empty so that we can search usin
 sym = ' '            
 
 #path to input file
-infile = open('err2.pas', 'r')
+infile = open(INPUTFILE, 'r')
 #path to output file, will create if doesn't already exist 
 outfile =  sys.stdout     	
+
+print >> outfile, "\n*************************\nCompiling " + INPUTFILE + "\n*************************\n" # Prints which file you're working on.
 
 getsym()	    # get first symbol
 block(0)        # call block initializing with a table index of zero
