@@ -6,7 +6,7 @@
 
 import sys
 
-INPUTFILE = "err1.pas"
+INPUTFILE = "in.pas"
 numberOfReservedWords = 22 #number of reserved words
 identTableLength = 100     #length of identifier table
 maxDigits = 14      	   #max number of digits in number
@@ -399,8 +399,8 @@ def statement(tx):
                     i = position(tx, id)
                     if i == 0:
                         error(11, sym)
-                    if table[i].kind != "constant":
-                        error(33, sym)
+                    if table[i].kind != "const":	# Let me tell you, this little bugger made me want to commit a terrible crime.
+                        error(33, sym)			# I was using 'constant' as the word instead of 'constant' and it kept failing.
                 getsym()
                 if sym != "colon":
                     error(5, sym)
