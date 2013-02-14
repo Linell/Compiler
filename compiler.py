@@ -1,12 +1,17 @@
-#	Linell Bonnette
+#	Linell Bonnette		
 #	timothy.bonnette@eagles.usm.edu
 #	CSC 408 - Modified compiler in Python
+
+#	This file has been changed to not accept input via the command line.
+#	Instead it you just change the name of INPUTFILE below. I might change
+#	that in a future version, but for now, I like this better. Changing it 
+#	to accept *just* command line input is fairly simple.
 
 
 
 import sys
 
-INPUTFILE = "in.pas"
+INPUTFILE = "err2.pas"
 numberOfReservedWords = 22 #number of reserved words
 identTableLength = 100     #length of identifier table
 maxDigits = 14      	   #max number of digits in number
