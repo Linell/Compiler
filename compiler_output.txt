@@ -1,0 +1,29 @@
+
+*************************
+Compiling err1.pas
+*************************
+
+Error on: ident
+Must be a constant, you idiot.
+
+*************************
+Compiling err2.pas
+*************************
+
+Error on: ident
+Undeclard identifier. Pay attention.
+
+*************************
+Compiling err3.pas
+*************************
+
+Error on: rparen
+An expression cannot begin with this symbol, you buffoon.
+
+
+*************************
+Compiling in.pas
+*************************
+
+
+Compilation was successful.

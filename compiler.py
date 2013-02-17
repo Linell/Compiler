@@ -11,7 +11,7 @@
 
 import sys
 
-INPUTFILE = "err2.pas"
+INPUTFILE = "in.pas"
 numberOfReservedWords = 22 #number of reserved words
 identTableLength = 100     #length of identifier table
 maxDigits = 14      	   #max number of digits in number
@@ -557,7 +557,7 @@ sym = ' '
 #path to input file
 infile = open(INPUTFILE, 'r')
 #path to output file, will create if doesn't already exist 
-outfile =  sys.stdout     	
+outfile =  open("compiler_output.txt", "a")     	
 
 print >> outfile, "\n*************************\nCompiling " + INPUTFILE + "\n*************************\n" # Prints which file you're working on.
 
