@@ -1,9 +1,7 @@
 #	Linell Bonnette
 #	timothy.bonnette@eagles.usm.edu
 #	CSC 408 - Modified compiler in Python
-
-# TO BE ADDED:
-#       - Restricted global variables
+#
 
 import sys
 
@@ -17,95 +15,97 @@ chars = []
 rword = []
 table = []
 
-global infile, outfile, ch, sym, id, num, linlen, kk, line, errorFlag, linelen
+global infile, outfile, ch, sym, id, num, linlen, kk, line, errorFlag, linelen, lineNumber
 
 class tableValue():
     def __init__(self, name, kind):
         self.name = name
         self.kind = kind
 
-# This function simply returns errors. You could make this pretty darn nifty, if you took the time
-# to *really* understand what all of the errors mean. Personally, I think I'm going to make my
-# compiler a bit of a dick.
-def error(num, sym):
-    global errorFlag;
+# I've modified this function a good bit. It's not a bit of a monster, but it has plenty of information
+# for you to fix your programs. Of course, it's not like these programs actually run, but still.
+def error(num, sym, tx):
+    global errorFlag
     errorFlag = 1
+
+    i = position(tx, id)
+    symName = table[i].name
     
     print
     if num == 1: 
-        print >>outfile, "Error on: " + sym + "\nUse = instead of :=. Idiot."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nUse = instead of :=. Idiot."
     elif num ==2: 
-        print >>outfile, "Error on: " + sym + "\n= must be followed by a number, you dummy."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\n= must be followed by a number, you dummy."
     elif num ==3: 
-        print >>outfile, "Error on: " + sym + "\nIdentifier must be followed by =. What do you think this is? A JOKE?"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nIdentifier must be followed by =. What do you think this is? A JOKE?"
     elif num ==4: 
-        print >>outfile, "Error on: " + sym + "\nConst, Var, Procedure must be followed by an identifier. C'mon man."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nConst, Var, Procedure must be followed by an identifier. C'mon man."
     elif num ==5: 
-        print >>outfile, "Error on: " + sym + "\nSemicolon, comma, or colon missing, you buffoon."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nSemicolon, comma, or colon missing, you buffoon."
     elif num == 6: 
-        print >>outfile, "Error on: " + sym + "\nIncorrect symbol after procedure declaration. Get it together."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nIncorrect symbol after procedure declaration. Get it together."
     elif num == 7:  
-        print >>outfile, "Error on: " + sym + "\nStatement expected. I mean, are you even trying?"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nStatement expected. I mean, are you even trying?"
     elif num == 8:
-        print >>outfile, "Error on: " + sym + "\nIncorrect symbol after statment part in block. Dude."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nIncorrect symbol after statment part in block. Dude."
     elif num == 9:
-        print >>outfile, "Error on: " + sym + "\nPeriod expected. But you knew that."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nPeriod expected. But you knew that."
     elif num == 10: 
-        print >>outfile, "Error on: " + sym + "\nSemicolon between statements is missing. Really? You missed a semicolon?!"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nSemicolon between statements is missing. Really? You missed a semicolon?!"
     elif num == 11:  
-        print >>outfile, "Error on: " + sym + "\nUndeclard identifier. Pay attention."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + symName + "\nUndeclard identifier. Pay attention."
     elif num == 12:
-        print >>outfile, "Error on: " + sym + "\nAssignment to a constant or procedure is not allowed. Why would you do that?"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nAssignment to a constant or procedure is not allowed. Why would you do that?"
     elif num == 13:
-        print >>outfile, "Error on: " + sym + "\nAssignment operator := expected. Are you even trying?"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nAssignment operator := expected. Are you even trying?"
     elif num == 14: 
-        print >>outfile, "Error on: " + sym + "\nCall must be followed by an identifier, dummy."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nCall must be followed by an identifier, dummy."
     elif num == 15:  
-        print >>outfile, "Error on: " + sym + "\nCall of a constant or a variable is meaningless. That's right. *You* are meaningless. You're as significant as a speck of dust in the majesty of the Universe."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nCall of a constant or a variable is meaningless. That's right. *You* are meaningless. You're as significant as a speck of dust in the majesty of the Universe."
     elif num == 16:
-        print >>outfile, "Error on: " + sym + "\nThen expected. That's what's wrong with your program."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThen expected. That's what's wrong with your program."
     elif num == 17:
-        print >>outfile, "Error on: " + sym + "\nSemicolon or end expected. C'mon man."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nSemicolon or end expected. C'mon man."
     elif num == 18: 
-        print >>outfile, "Error on: " + sym + "\nDO expected. Be like Nike. Just *DO* it."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nDO expected. Be like Nike. Just *DO* it."
     elif num == 19:  
-        print >>outfile, "Error on: " + sym + "\nIncorrect symbol following statement. Watch what you're doing."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nIncorrect symbol following statement. Watch what you're doing."
     elif num == 20:
-        print >>outfile, "Error on: " + sym + "\nRelational operator expected."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nRelational operator expected."
     elif num == 21:
-        print >>outfile, "Error on: " + sym + "\nExpression must not contain a procedure identifier"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nExpression must not contain a procedure identifier"
     elif num == 22: 
-        print >>outfile, "Error on: " + sym + "\nRight parenthesis missing. That's pretty basic man."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nRight parenthesis missing. That's pretty basic man."
     elif num == 23:  
-        print >>outfile, "Error on: " + sym + "\nThe preceding factor cannot be followed by this symbol. It's simple."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThe preceding factor cannot be followed by this symbol. It's simple."
     elif num == 24:
-        print >>outfile, "Error on: " + sym + "\nAn expression cannot begin with this symbol, you buffoon."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nAn expression cannot begin with this symbol, you buffoon."
     elif num == 25:
-        print >>outfile, "Error on: " + sym + "\nConstant or Number is expected. Is it really that hard?"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nConstant or Number is expected. Is it really that hard?"
     elif num == 26: 
-        print >>outfile, "Error on: " + sym + "\nThis number is too large. Sucks, eh?"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThis number is too large. Sucks, eh?"
     elif num == 27: 
-        print >>outfile, "Error on: " + sym + "\nDo expected after While. You're not very good at this."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + ym + "\nDo expected after While. You're not very good at this."
     elif num == 28: 
-        print >>outfile, "Error on: " + sym + "\nThere must be a variable after a For, idiot."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThere must be a variable after a For, idiot."
     elif num == 29: 
-        print >>outfile, "Error on: " + sym + "\nFor must be followed by either To or Downto."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nFor must be followed by either To or Downto."
     elif num == 30: 
-        print >>outfile, "Error on: " + sym + "\nCase must be followed by of, dumbo."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nCase must be followed by of, dumbo."
     elif num == 31: 
-        print >>outfile, "Error on: " + sym + "\nEither CEND, a number, or an identifier."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nEither CEND, a number, or an identifier."
     elif num == 32: 
-        print >>outfile, "Error on: " + sym + "\nLeft parenthesis missing. You're bad at this whole programming thing."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nLeft parenthesis missing. You're bad at this whole programming thing."
     elif num == 33: 
-        print >>outfile, "Error on: " + sym + "\nMust be a constant, you idiot."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nMust be a constant, you idiot."
     exit(0)
     
 def getch():
     """ This gets the next character in the file. """
     global  whichChar, ch, linelen, line;
-    if whichChar == linelen:         #if at end of line
+    if whichChar == linelen:         # if at end of line
         whichChar = 0
-        line = infile.readline()     #get next line
+        line = infile.readline()     # get next line
         linelen = len(line)
         sys.stdout.write(line)	     # This prints out the line. You can kill this.
     if linelen != 0:
@@ -115,9 +115,11 @@ def getch():
         
 def getsym():
     """ *Dr. Ali stomps his foot* """
-    global charcnt, ch, identLength, a, numberOfReservedWords, rword, sym, maxDigits, id
+    global charcnt, ch, identLength, a, numberOfReservedWords, rword, sym, maxDigits, id, lineNumber
     # As long as you're reading something other than a good character, getch()
     while ch == " " or ch == "\n" or ch == "\r" or ch == "\t":
+        if ch == "\n":
+            lineNumber += 1
         getch()
     # 'a' appears to hold your sym
     a = []
@@ -149,7 +151,7 @@ def getsym():
             if not ch.isdigit():
                 break
         if k>maxDigits:	# If the length of the sym is greated than the max length, error
-            error(30, sym)
+            error(30, sym, tx)
         else:
             id = "".join(a) # makes a string
     
@@ -221,11 +223,11 @@ def constdeclaration(tx):
                 enter(tx, "const")
                 getsym()
             else:
-                error(2, sym)
+                error(2, sym, tx)
         else:
-            error(3, sym)
+            error(3, sym, tx)
     else:
-        error(4, sym)
+        error(4, sym, tx)
 
 #-------------VARIABLE DECLARATION-----------------------------------
 def vardeclaration(tx):
@@ -234,7 +236,7 @@ def vardeclaration(tx):
         enter(tx, "variable")
         getsym()
     else:
-        error(4, sym)
+        error(4, sym, tx)
     
 #-------------BLOCK------------------------------------------------
 def block(tableIndex):
@@ -253,7 +255,7 @@ def block(tableIndex):
                 if sym != "comma":    # If it doesn't detect a comma, it pops back out to look for a semicolon.
                     break
             if sym != "semicolon":
-                error(10, sym);
+                error(10, sym, tx);
             getsym()                  # Remember to get the symbol before you leave.
         
         if sym == "VAR":              
@@ -263,7 +265,7 @@ def block(tableIndex):
                 if sym != "comma":
                     break
             if sym != "semicolon":
-                error(10, sym)
+                error(10, sym, tx)
             getsym()
         
         while sym == "PROCEDURE":
@@ -272,14 +274,14 @@ def block(tableIndex):
                 enter(tx, "procedure")
                 getsym()
             else:
-                error(4, sym)
+                error(4, sym, tx)
             if sym != "semicolon":
-                error(10, sym)
+                error(10, sym, tx)
             getsym()
             block(tx[0])
             
             if sym != "semicolon":
-                error(10, sym)
+                error(10, sym, tx)
             getsym()
 
     # Restricted globals will go here.
@@ -292,24 +294,24 @@ def statement(tx):
     if sym == "ident":
         i = position(tx, id)
         if i==0:
-            error(11, sym)
+            error(11, sym, tx)
         elif table[i].kind != "variable":
-            error(12, sym)
+            error(12, sym, tx)
         getsym()
         if sym != "becomes":
-            error(13, sym)
+            error(13, sym, tx)
         getsym()
         expression(tx)
         
     elif sym == "CALL":
         getsym()
         if sym != "ident":
-            error(14, sym)
+            error(14, sym, tx)
         i = position(tx, id)
         if i==0:
-            error(11, sym)
+            error(11, sym, tx)
         if table[i].kind != "procedure":
-            error(15, sym)
+            error(15, sym, tx)
         getsym()
     
     # The basic 'IF' statement.
@@ -317,7 +319,7 @@ def statement(tx):
         getsym()
         condition(tx)
         if sym != "THEN":
-            error(16, sym)
+            error(16, sym, tx)
         getsym()
         statement(tx)
         # Adding the Else statement here
@@ -335,14 +337,14 @@ def statement(tx):
             if sym != "semicolon":
                 break
         if sym != "END":
-            error(17, sym)
+            error(17, sym, tx)
         getsym()
     
     elif sym == "WHILE":
         getsym()
         condition(tx)
         if sym != "DO":
-            error(18, sym)
+            error(18, sym, tx)
         getsym()
         statement(tx)
 
@@ -354,7 +356,7 @@ def statement(tx):
             if sym != "semicolon":
                 break
         if sym != "UNTIL":
-            error(27, sym)
+            error(27, sym, tx)
         getsym()
         condition(tx)
     # Ending the repeat / until
@@ -363,25 +365,25 @@ def statement(tx):
     elif sym == "FOR":          
         getsym()                
         if sym != "ident":      # This has to be a variable....not sure how to check that.     
-            error(28, sym)
+            error(28, sym, tx)
         if sym == "ident":
             i = position(tx, id)
             if i == 0:
-                error(11, sym)
+                error(11, sym, tx)
             if table[i].kind != "variable":
-                error(33, sym)
+                error(33, sym, tx)
         getsym()                
         if sym != "becomes":    
-            error(13, sym)
+            error(13, sym, tx)
         getsym()                
         expression(tx)          
         if sym == "TO" or sym == "DOWNTO":          
             getsym()
             expression(tx)
         else:
-            error(29, sym)
+            error(29, sym, tx)
         if sym != "DO":
-            error(18, sym)
+            error(18, sym, tx)
         getsym()
         statement(tx)
     # End for
@@ -391,27 +393,27 @@ def statement(tx):
         getsym()
         expression(tx)
         if sym != "OF":
-            error(30, sym)
+            error(30, sym, tx)
         while True:             # Actually, I don't think this should be a do while loop.
             getsym()
             if sym == "number" or sym == "ident":       # note that ident must be a constant
                 if sym == "ident":
                     i = position(tx, id)
                     if i == 0:
-                        error(11, sym)
-                    if table[i].kind != "constant":
-                        error(33, sym)
+                        error(11, sym, tx)
+                    if table[i].kind != "const":
+                        error(33, sym, tx)
                 getsym()
                 if sym != "colon":
-                    error(5, sym)
+                    error(5, sym, tx)
                 getsym()
                 statement(tx)
                 if sym != "semicolon":
-                    error(5, sym)
+                    error(5, sym, tx)
             else:
                 break
         if sym != "CEND":
-            error(31, sym)
+            error(31, sym, tx)
         getsym()
     # End Case
 
@@ -419,14 +421,14 @@ def statement(tx):
     elif sym == "WRITE" or sym == "WRITELN":
         getsym()
         if sym != "lparen":
-            error(32, sym)
+            error(32, sym, tx)
         while True:
             getsym()
             expression(tx)
             if sym != "comma":
                 break   
         if sym != "rparen":
-            error(22, sym)
+            error(22, sym, tx)
         getsym()
     # End Write
 
@@ -457,7 +459,7 @@ def factor(tx):
     if sym == "ident":
         i = position(tx, id)
         if i==0:
-            error(11, sym)
+            error(11, sym, tx)
         getsym()
     
     elif sym == "number":
@@ -467,11 +469,11 @@ def factor(tx):
         getsym()
         expression(tx)
         if sym != "rparen":
-            error(22, sym)
+            error(22, sym, tx)
         getsym()
     
     else:
-        error(24, sym)
+        error(24, sym, tx)
 
 #-----------CONDITION-------------------------------------------------
 def condition(tx):
@@ -483,7 +485,7 @@ def condition(tx):
     else:
         expression(tx)
         if not (sym in ["eql","neq","lss","leq","gtr","geq"]):
-            error(20, sym)
+            error(20, sym, tx)
         else:
             getsym()
             expression(tx)
@@ -536,7 +538,7 @@ ssym = {'+' : "plus",
              ';' : "semicolon",
              ':' : "colon",}
               
-
+lineNumber = 1
 charcnt = 0
 whichChar = 0
 linelen = 0
@@ -545,20 +547,20 @@ kk = identLength
 a = []
 id= '     '
 errorFlag = 0
-		   # The table is the table that holds all of our variables.
+		           # The table is the table that holds all of our variables.
 table.append(0)    # The first position is made empty so that we can search using it.
 sym = ' '            
 
-#path to input file
-infile = open('err2.pas', 'r')
-#path to output file, will create if doesn't already exist 
+# Path to input file
+infile = open('in.pas', 'r')
+# Path to output file, will create if doesn't already exist 
 outfile =  sys.stdout     	
 
 getsym()	    # get first symbol
 block(0)        # call block initializing with a table index of zero
 
-if sym != "period":      #period expected after block is completed
-    error(9, sym)
+if sym != "period":      # period expected after block is completed
+    error(9, sym, tx)
    
 print >> outfile
 if errorFlag == 0:
