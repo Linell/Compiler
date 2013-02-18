@@ -1,17 +1,7 @@
 #	Linell Bonnette		
 #	timothy.bonnette@eagles.usm.edu
 #	CSC 408 - Modified compiler in Python
-<<<<<<< HEAD
-#
-=======
 
-#	This file has been changed to not accept input via the command line.
-#	Instead it you just change the name of INPUTFILE below. I might change
-#	that in a future version, but for now, I like this better. Changing it 
-#	to accept *just* command line input is fairly simple.
-
-
->>>>>>> 0e965d89d0458eb0c1761186bd3a785a3d12f922
 
 import sys
 
