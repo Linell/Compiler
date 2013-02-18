@@ -1,10 +1,21 @@
-#	Linell Bonnette
+#	Linell Bonnette		
 #	timothy.bonnette@eagles.usm.edu
 #	CSC 408 - Modified compiler in Python
+<<<<<<< HEAD
 #
+=======
+
+#	This file has been changed to not accept input via the command line.
+#	Instead it you just change the name of INPUTFILE below. I might change
+#	that in a future version, but for now, I like this better. Changing it 
+#	to accept *just* command line input is fairly simple.
+
+
+>>>>>>> 0e965d89d0458eb0c1761186bd3a785a3d12f922
 
 import sys
 
+INPUTFILE = "in.pas"
 numberOfReservedWords = 22 #number of reserved words
 identTableLength = 100     #length of identifier table
 maxDigits = 14      	   #max number of digits in number
@@ -400,9 +411,15 @@ def statement(tx):
                 if sym == "ident":
                     i = position(tx, id)
                     if i == 0:
+<<<<<<< HEAD
                         error(11, sym, tx)
                     if table[i].kind != "const":
                         error(33, sym, tx)
+=======
+                        error(11, sym)
+                    if table[i].kind != "const":	# Let me tell you, this little bugger made me want to commit a terrible crime.
+                        error(33, sym)			# I was using 'constant' as the word instead of 'constant' and it kept failing.
+>>>>>>> 0e965d89d0458eb0c1761186bd3a785a3d12f922
                 getsym()
                 if sym != "colon":
                     error(5, sym, tx)
@@ -551,10 +568,19 @@ errorFlag = 0
 table.append(0)    # The first position is made empty so that we can search using it.
 sym = ' '            
 
+<<<<<<< HEAD
 # Path to input file
 infile = open('in.pas', 'r')
 # Path to output file, will create if doesn't already exist 
 outfile =  sys.stdout     	
+=======
+#path to input file
+infile = open(INPUTFILE, 'r')
+#path to output file, will create if doesn't already exist 
+outfile =  open("compiler_output.txt", "a")     	
+
+print >> outfile, "\n*************************\nCompiling " + INPUTFILE + "\n*************************\n" # Prints which file you're working on.
+>>>>>>> 0e965d89d0458eb0c1761186bd3a785a3d12f922
 
 getsym()	    # get first symbol
 block(0)        # call block initializing with a table index of zero
