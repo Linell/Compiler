@@ -108,7 +108,7 @@ def getch():
         whichChar = 0
         line = infile.readline()     # get next line
         linelen = len(line)
-        sys.stdout.write(line)	     # This prints out the line. You can kill this.
+        print >> outfile, line	     # This prints out the line. You can kill this.
     if linelen != 0:
         ch = line[whichChar]
         whichChar += 1
@@ -555,11 +555,11 @@ sym = ' '
 # Path to input file
 infile = open('in.pas', 'r')
 # Path to output file, will create if doesn't already exist 
-outfile =  sys.stdout     	
-#path to input file
+# outfile =  sys.stdout     	
+# path to input file
 # infile = open(INPUTFILE, 'r')
 # path to output file, will create if doesn't already exist 
-# outfile =  open("compiler_output.txt", "a")     	
+outfile =  open("compiler_output.txt", "a")     	
 
 print >> outfile, "\n*************************\nCompiling " + INPUTFILE + "\n*************************\n" # Prints which file you're working on.
 
