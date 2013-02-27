@@ -23,6 +23,10 @@ using namespace std;
 
 /* 
 	Error Definitions
+
+	These definitions are all just assinging an error to a number.
+	I'm not sure if I like it or not. I mean, it makes the error 
+	calls look a little nicer, I suppose.
 */ 
 #define ERROR_SEMICOLON			1
 #define ERROR_IDENT				2
@@ -46,6 +50,8 @@ using namespace std;
 
 /*
 	Enumerated Data Types
+
+	// I *believe* that these are the keywords. However, I am not sure.
 */
 typedef enum tag_symbol
 {
@@ -81,7 +87,6 @@ typedef enum tag_symbol
 	DOSYM
 } symbol;
 
-// -------------------------------------------
 typedef enum tag_Objtype
 {
 	NOTYPE,
@@ -100,46 +105,49 @@ typedef enum tag_intype
 	SPACE
 } intype;
 
-// -------------------------------------------
-typedef struct tag_symtable    // Symbols Table Structure
+typedef struct tag_symtable    	// Symbols Table Structure
 {
-	char name[MAX_SYM_SZ];     // Symbol name
-	Objtype kind;         	// Type of symbol
+	char name[MAX_SYM_SZ];     	// Symbol name
+	Objtype kind;         		// Type of symbol
 } symtable;
 
-// -------------------------------------------
-// These are some global variables
-// -------------------------------------------
-int  linelength,        // line length
-linecount,         // line counter
-charcount,         // a character counter
-number;
+/*
+	Global Variables
+*/
+int linelength;        // Line length
+int linecount;         // Line counter
+int charcount;         // A character counter
+int number;
 
-symbol prevsym;         // holds the previous symbol
-symtable  table [MAX_TABLE];     // table array
-char   line  [MAX_SYM_SZ];      // an identification string
-char   punc  [MAX_SYM_SZ];      // punction array
-char   symstr[MAX_SYMBOL][MAX_SYM_SZ];  // symbols array
+symbol prevsym;         				// Holds the previous symbol
+symtable  table [MAX_TABLE];    		// Table array
+char   line  [MAX_SYM_SZ];      		// An identification string
+char   punc  [MAX_SYM_SZ];      		// Punction array
+char   symstr[MAX_SYMBOL][MAX_SYM_SZ];  // Symbols array
 
-// -------------------------------------------
-// These are some function prototypes
-// -------------------------------------------
+/*
+	Function Prototypes
+*/
 void   block(symbol &, int);
 void   statement(symbol &, int);
 void   condition(symbol &, int);
 void   expression(symbol &, int);
 void   term(symbol &, int);
 void   factor(symbol &, int);
-char   getchar(char   &);
+char   getchar(char &);
 void   getsym(symbol &);
-intype chartype(char  ch);
+intype chartype(char ch);
 void   enter(Objtype, char[], symbol &, int &, int &);
 int    position(int);
 void   error(int);
 
-// -------------------------------------------
-// This handles our system errors
-// -------------------------------------------
+/*
+	Error Handling 
+
+	These errors are all based off of the numbers outlined in the
+	define statements above. I believe that this compiler will be
+	a very nice one. C++ is a gentleman, I suppose you could say.
+*/
 void error(int num)
 {
 	cout << endl;
@@ -147,67 +155,67 @@ void error(int num)
 	switch (num)
 	{
 		case ERROR_NOPROCEDURE :
-			cout << "Procedure not accepted here";
+			cout << "Error: Procedure not accepted here, on line: " << linecount;
 			break;
 		case ERROR_NUMBER_IDENT :
-			cout << "number or ident expected";
+			cout << "Error: Number or ident expected, on line: " << linecount;
 			break;
 		case ERROR_ASSIGN :
-			cout << "Assignment operator expected";
+			cout << "Error: Assignment operator expected, on line: " << linecount;
 			break;
 		case ERROR_ASSIGN_PROC :
-			cout << "Assignment not allowed here";
+			cout << "Error: Assignment not allowed here, on line: " << linecount;
 			break;
 		case ERROR_END_PROG :
-			cout << "Premature end of program";
+			cout << "Error: Premature end of program, on line: " << linecount;
 			break;
 		case ERROR_DO_SYM :
-			cout << "DO symbol Expected";
+			cout << "Error: DO symbol Expected, on line: " << linecount;
 			break;
 		case ERROR_END_SYM :
-			cout << "END symbol Expected";
+			cout << "Error: END symbol Expected, on line: " << linecount;
 			break;
 		case ERROR_IDENT :
-			cout << "Identifier Expected";
+			cout << "Error: Identifier Expected, on line: " << linecount;
 			break;
 		case ERROR_IS_PROCEDURE :
-			cout << "Assignment to PROCEDURE not allowed";
+			cout << "Error: Assignment to PROCEDURE not allowed, on line: " << linecount;
 			break;
 		case ERROR_NUMBER :
-			cout << "A number was Expected";
+			cout << "Error: A number was Expected, on line: " << linecount;
 			break;
 		case ERROR_PROG_SIZE :
-			cout << "Program size is too large...";
+			cout << "Error: Program size is too large..., on line: " << linecount;
 			break;
 		case ERROR_RPAREN :
-			cout << "RIGHT Parenthesis Expected";
+			cout << "Error: RIGHT Parenthesis Expected, on line: " << linecount;
 			break;
 		case ERROR_LPAREN :
-			cout << "LEFT Parenthesis Expected";
+			cout << "Error: LEFT Parenthesis Expected, on line: " << linecount;
 			break;
 		case ERROR_SEMICOLON :
-			cout << "Semicolon Expected" ;
+			cout << "Error: Semicolon Expected, on line: " << linecount;
 			break;
 		case ERROR_THEN_SYM :
-			cout << "THEN symbol Expected";
+			cout << "Error: THEN symbol Expected, on line: " << linecount;
 			break;
 		case ERROR_UNKNOWN :
-			cout << "Unknown Identifier";
+			cout << "Error: Unknown Identifier, on line: " << linecount;
 			break;
 		case ERROR_VARIABLE :
-			cout << "Variable or Expression Expected";
+			cout << "Error: Variable or Expression Expected, on line: " << linecount;
 			break;
 		case ERROR_REL :
-			cout << "Relational operator expected";
+			cout << "Error: Relational operator expected, on line: " << linecount;
 			break;
 	}
 	cout << endl;
 	exit(1);
 }
 
-// -------------------------------------------
-// Insert Block Identifier
-// -------------------------------------------
+/*
+	Insert Block Identifier
+*/
 void enter(Objtype kind, char name[], symbol &sym, int &tableinx)
 {
 	tableinx++;
@@ -236,9 +244,9 @@ void enter(Objtype kind, char name[], symbol &sym, int &tableinx)
 		getsym(sym);
 }
 
-// -------------------------------------------
-// Locate Position
-// -------------------------------------------
+/*
+	Locate Position
+*/
 int position(int tableinx)
 {
 	int i = tableinx;
@@ -248,14 +256,14 @@ int position(int tableinx)
 	return i;
 }
 
-// -------------------------------------------
-// Block
-// -------------------------------------------
+/*
+	Block
+*/
 void block(symbol &sym, int tableinx)
 {
 	if (sym == CONSTSYM)
 	{
-		// ---- CONSTANT SYM ----
+		// Constant sym
 		getsym(sym);
 		enter(CONSTANT, line, sym, tableinx);
 
@@ -268,7 +276,7 @@ void block(symbol &sym, int tableinx)
 			error(ERROR_SEMICOLON);
 		getsym(sym);
 	}
-	// ---- VARIABLE SYM ----
+	// Variable sym
 	if (sym == VARSYM)
 	{
 		getsym(sym);
@@ -282,7 +290,7 @@ void block(symbol &sym, int tableinx)
 			error(ERROR_SEMICOLON);
 		getsym(sym);
 	}
-	// ---- PROCEDURE SYM ----
+	// Procedure sym
 	while (sym == PROCSYM)
 	{
 		while (sym == PROCSYM)
@@ -293,7 +301,7 @@ void block(symbol &sym, int tableinx)
 			enter(PROCEDURE, line, sym, tableinx);
 			getsym(sym);
 
-			block(sym, tableinx);//inc static link for functions inside of functions, table current pointer
+			block(sym, tableinx); //inc static link for functions inside of functions, table current pointer
 
 			if (sym != SEMICOLON)
 				error(ERROR_SEMICOLON);
@@ -304,9 +312,11 @@ void block(symbol &sym, int tableinx)
 	statement(sym, tableinx);
 }
 
-// -------------------------------------------
-// Statement
-// -------------------------------------------
+/*
+	Statement
+
+	All of the modifications needed will take place here.
+*/
 void statement(symbol &sym, int tableinx)
 {
 	int i;
@@ -387,9 +397,9 @@ void statement(symbol &sym, int tableinx)
 	}
 }
 
-// -------------------------------------------
-// Condition
-// -------------------------------------------
+/*
+	Condition
+*/
 void condition(symbol &sym, int tableinx)
 {
 	// ODD symbol
@@ -410,9 +420,10 @@ void condition(symbol &sym, int tableinx)
 			error(ERROR_REL);
 	}
 }
-// -------------------------------------------
-// Expression
-// -------------------------------------------
+
+/*
+	Expression
+*/
 void expression(symbol &sym, int tableinx)
 {
 	if ((sym == PLUS) || (sym == MINUS))
@@ -430,9 +441,9 @@ void expression(symbol &sym, int tableinx)
 	}
 }
 
-// -------------------------------------------
-// TERM
-// -------------------------------------------
+/*
+	Term
+*/
 void term(symbol &sym, int tableinx)
 {
 	factor(sym, tableinx);
@@ -443,9 +454,9 @@ void term(symbol &sym, int tableinx)
 	}
 }
 
-// -------------------------------------------
-// FACTOR
-// -------------------------------------------
+/*
+	Factor
+*/
 void factor(symbol &sym, int tableinx)
 {
 	int i;
@@ -480,15 +491,12 @@ void factor(symbol &sym, int tableinx)
 	}
 }
 
-// -------------------------------------------
-// This is our GET CHARACTER function
-// -------------------------------------------
 char getchar(char &ch)
 {
 	static char line[255];           // local array
 	if (charcount == linelength)
 	{
-		charcount = linelength = 0;       // zero out counters
+		charcount = linelength = 0;       // Zeros out counters.
 		cin.get(ch);
 		while (chartype(ch) != EOL && cin)
 		{
@@ -503,17 +511,14 @@ char getchar(char &ch)
 		cout << line << endl;
 
 		line[linelength] = ' ';
-		linecount++;                    // count lines
-		linelength++;                   //
+		linecount++;					// Counts the lines
+		linelength++;                   // Counts the lines length
 	}
 	ch = toupper(line[charcount]);
-	charcount++;                      // count characters
+	charcount++;						// Counts characters
 	return ch;
 }
 
-// -------------------------------------------
-// This is our GETSYM
-// -------------------------------------------
 void getsym(symbol &sym)
 {
 	char ch;
@@ -635,9 +640,9 @@ void getsym(symbol &sym)
 	}
 }
 
-// -------------------------------------------
-// determine a character type
-// -------------------------------------------
+/*
+	Determine a character type
+*/
 intype chartype(char ch)
 {
 	if (ch == '\n' || ch == '\r')
@@ -654,22 +659,26 @@ intype chartype(char ch)
 	return NONE;
 }
 
-// -------------------------------------------
-// This is our main program entry
-// -------------------------------------------
+/*
+******************************************************************************************
+	Main Program
+******************************************************************************************
+*/
 int main(int argc, char* argv[])
 {
 	symbol sym;
-	int i;
-	char filen[40];
+	// I am not what purpose these variables are supposed to serve.
+	// The program runs just fine with them commented out.
+	//int i;
+	//char filen[40];
 
 	// Initialize some variables
 	linelength = 0;
 	charcount  = 0;
 	linecount  = 0;
 
-	getsym(sym);                  // get the first symbol
-	block(sym, 0);                  // start processing
+	getsym(sym);	// Gets the first symbol
+	block(sym, 0);	// Start processing
 
 	cout << "\n******************************Compilation succeeded.******************************\n\n";
 
