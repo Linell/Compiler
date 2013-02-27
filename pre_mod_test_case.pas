@@ -11,12 +11,8 @@ PROCEDURE ONE;
         BEGIN
             IF C = D THEN
                 CALL TWO;
-            CASE C+1 OF
-             3:WRITELN(A,B,C);
-             B:IF A+1=B THEN
-                IF 10=A THEN ELSE WRITE(A,C)
-               ELSE WRITE(B,C);
-            CEND;
+            IF A <> D THEN
+                CALL ONE;
         END;
 
     PROCEDURE THREE;
@@ -25,15 +21,13 @@ PROCEDURE ONE;
             IF C < X THEN
             BEGIN
                 CALL THREE;
-                CALL TWO;
-                WRITELN(ONE);
+                CALL ONE;
             END;
         END;
 
     BEGIN
         IF B <= -(5 + C * A) THEN
-            FOR B1:=10 DOWNTO A DO
-                CALL ONE;
+            B := B + 1;
     END;
 
 BEGIN
