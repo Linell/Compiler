@@ -4,7 +4,7 @@ CONST
 
 VAR
 
-        B1;
+        B1,C;
 
 
 
@@ -12,30 +12,36 @@ PROCEDURE ONE;
 
 CONST
 
-        A=3;
+        A=5;
 
 VAR
 
-        J,D1;
+        C1,D1;
 
 BEGIN
 
-        D1:=0;
+        D1:=30;
 
-        REPEAT
+        FOR B1:=10 DOWNTO A DO
 
-              D1:=D1+5;
+         WRITE(B1);
 
-        UNTIL D1*A=30;
+        FOR B1:=1*C TO C DO
 
-        J:=A*A;
+           WRITELN(B1,C)
 
-        REPEAT
+END;
 
-               J:=J+1;
+BEGIN
 
-               WRITELN(J,J*A+2);
+        B1:=11+A*(A-A);
 
-               WRITE(J,);
+        FOR C:=1-A+A TO B1+1 DO
 
-Error: Variable or Expression Expected, on line: 39
+            CASE C+1 OF
+
+             3:WRITELN(A,B1,C);
+
+             B1:IF A+1=B THEN
+
+Error: Identifier Expected, on line: 45

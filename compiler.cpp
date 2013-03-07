@@ -488,15 +488,33 @@ void statement(symbol &sym, int tableinx)
 			if (sym != OFSYM) {
 				error(ERROR_OF_SYM);
 			}
-			do {
-				getsym(sym);
+			getsym(sym);
+			// do {
+			// 	getsym(sym);
+			// 	if (sym == IDENT) {
+			// 		cout << "\nThe symbol has been identified as an identifier. Cool.\n";
+			// 		i = position(tableinx);
+			// 		if (i == 0)
+			// 			error(ERROR_UNKNOWN);
+			// 		if (table[i].kind != CONSTANT)
+			// 			error(ERROR_CONSTANT);
+			// 	}
+			// 	getsym(sym);
+			// 	if (sym != COLON) {
+			// 		error(ERROR_COLON);
+			// 	}
+			// 	getsym(sym);
+			// 	statement(sym, tableinx);
+			// 	if (sym != SEMICOLON) {
+			// 		error(ERROR_SEMICOLON);
+			// 	}
+			// } while (sym == NUM || sym == IDENT);
+			while (sym == NUM || sym == IDENT) {
 				if (sym == IDENT) {
-					cout << "\nThe symbol has been identified as an identifier. Cool.\n";
 					i = position(tableinx);
-					if (i == 0)
-						error(ERROR_UNKNOWN);
-					if (table[i].kind != CONSTANT)
-						error(ERROR_CONSTANT);
+					if (sym == IDENT && table[i].kind != CONSTANT) {
+						error(ERROR_IDENT);
+					}
 				}
 				getsym(sym);
 				if (sym != COLON) {
@@ -507,9 +525,8 @@ void statement(symbol &sym, int tableinx)
 				if (sym != SEMICOLON) {
 					error(ERROR_SEMICOLON);
 				}
-			} while (sym == NUM || sym == IDENT);
-			getsym(sym);
-			cout << sym;
+				getsym(sym);
+			}
 			if (sym != CENDSYM) {
 				error(ERROR_CEND_SYM);
 			}
