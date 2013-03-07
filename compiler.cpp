@@ -47,11 +47,17 @@ using namespace std;
 #define ERROR_REL				17
 #define ERROR_NUMBER_IDENT      18
 #define ERROR_NOPROCEDURE       19
+#define ERROR_UNTIL_SYM			20	// Added
+#define ERROR_OF_SYM			21
+#define ERROR_COLON 			22
+#define ERROR_CONSTANT			23
+#define ERROR_CEND_SYM			24
 
 /*
 	Enumerated Data Types
 
-	// I *believe* that these are the keywords. However, I am not sure.
+	I believe that I'll have to add things to *this* to add them to the overall thing.
+	They obviously do not appear to be in alphabetical order. Dafuq?
 */
 typedef enum tag_symbol
 {
@@ -84,9 +90,23 @@ typedef enum tag_symbol
 	CALL,
 	THENSYM,
 	WHILESYM,
-	DOSYM
+	DOSYM,	// Additions start below this line
+	ELSESYM,
+	REPEATSYM,
+	UNTILSYM,
+	FORSYM,
+	TOSYM,
+	DOWNTOSYM,
+	CASESYM,
+	OFSYM,
+	CENDSYM,
+	WRITESYM	// This handles write and writelns
 } symbol;
 
+/*
+	This can be used to check for whether or not a variable is a
+	constant, variable, etc.
+*/
 typedef enum tag_Objtype
 {
 	NOTYPE,
@@ -124,9 +144,12 @@ symtable  table [MAX_TABLE];    		// Table array
 char   line  [MAX_SYM_SZ];      		// An identification string
 char   punc  [MAX_SYM_SZ];      		// Punction array
 char   symstr[MAX_SYMBOL][MAX_SYM_SZ];  // Symbols array
+										// How are those three arrays used differently?
 
 /*
 	Function Prototypes
+
+	The origin of these is the syntax diagram.s
 */
 void   block(symbol &, int);
 void   statement(symbol &, int);
@@ -208,6 +231,17 @@ void error(int num)
 		case ERROR_REL :
 			cout << "Error: Relational operator expected, on line: " << linecount;
 			break;
+		case ERROR_UNTIL_SYM :
+			cout << "Error: An UNTIL was expected on line: " << linecount;
+			break;
+		case ERROR_OF_SYM :
+			cout << "Error: OF expected on line: " << linecount;
+			break;
+		case ERROR_CONSTANT :
+			cout << "Error: constant expected on line: " << linecount;
+			break;
+		case ERROR_CEND_SYM :
+			cout << "Error: CEND expected on line: " << linecount;
 	}
 	cout << endl;
 	exit(1);
@@ -261,53 +295,56 @@ int position(int tableinx)
 */
 void block(symbol &sym, int tableinx)
 {
-	if (sym == CONSTSYM)
-	{
-		// Constant sym
-		getsym(sym);
-		enter(CONSTANT, line, sym, tableinx);
-
-		while (sym == COMMA)
+	while (sym == CONSTSYM || sym == VARSYM || sym == PROCSYM) {
+		if (sym == CONSTSYM)
 		{
+			// Constant sym
 			getsym(sym);
 			enter(CONSTANT, line, sym, tableinx);
-		}
-		if (sym != SEMICOLON)
-			error(ERROR_SEMICOLON);
-		getsym(sym);
-	}
-	// Variable sym
-	if (sym == VARSYM)
-	{
-		getsym(sym);
-		enter(VARIABLE, line, sym, tableinx);
-		while (sym == COMMA)
-		{
-			getsym(sym);
-			enter(VARIABLE, line, sym, tableinx);
-		}
-		if (sym != SEMICOLON)
-			error(ERROR_SEMICOLON);
-		getsym(sym);
-	}
-	// Procedure sym
-	while (sym == PROCSYM)
-	{
-		while (sym == PROCSYM)
-		{
-			getsym(sym);
-			if (sym != IDENT)
-				error(ERROR_IDENT);
-			enter(PROCEDURE, line, sym, tableinx);
-			getsym(sym);
 
-			block(sym, tableinx); //inc static link for functions inside of functions, table current pointer
-
+			while (sym == COMMA)
+			{
+				getsym(sym);
+				enter(CONSTANT, line, sym, tableinx);
+			}
 			if (sym != SEMICOLON)
 				error(ERROR_SEMICOLON);
 			getsym(sym);
 		}
+		// Variable sym
+		if (sym == VARSYM)
+		{
+			getsym(sym);
+			enter(VARIABLE, line, sym, tableinx);
+			while (sym == COMMA)
+			{
+				getsym(sym);
+				enter(VARIABLE, line, sym, tableinx);
+			}
+			if (sym != SEMICOLON)
+				error(ERROR_SEMICOLON);
+			getsym(sym);
+		}
+		// Procedure sym
+		while (sym == PROCSYM)
+		{
+			while (sym == PROCSYM)
+			{
+				getsym(sym);
+				if (sym != IDENT)
+					error(ERROR_IDENT);
+				enter(PROCEDURE, line, sym, tableinx);
+				getsym(sym);
+
+				block(sym, tableinx); //inc static link for functions inside of functions, table current pointer
+
+				if (sym != SEMICOLON)
+					error(ERROR_SEMICOLON);
+				getsym(sym);
+			}
+		}
 	}
+	
 
 	statement(sym, tableinx);
 }
@@ -393,7 +430,109 @@ void statement(symbol &sym, int tableinx)
 				error(ERROR_THEN_SYM);
 			getsym(sym);
 			statement(sym, tableinx);
+			// I'm adding the else statement here.
+			if (sym == ELSESYM) {
+				getsym(sym);
+				statement(sym, tableinx);
+			}
+			// Ending the else statement.
 			break;
+
+		// Adding the repeat/until
+		case REPEATSYM:
+			do {
+				getsym(sym);
+				statement(sym, tableinx);
+			} while (sym == SEMICOLON);
+			if (sym != UNTILSYM) {
+				error(ERROR_UNTIL_SYM);
+			}
+			getsym(sym);
+			condition(sym, tableinx);
+			break;
+		// End of the repeat statement.
+
+		// For/To|Downto
+		case FORSYM:
+			getsym(sym);
+			if (sym != IDENT) {
+				error(ERROR_IDENT);
+			}
+			i = position(tableinx);
+			if (i == 0)
+				error(ERROR_UNKNOWN);
+			if (table[i].kind != VARIABLE)
+				error(ERROR_VARIABLE);
+			getsym(sym);
+			if (sym != ASSIGN) {
+				error(ERROR_ASSIGN);
+			}
+			getsym(sym);
+			expression(sym, tableinx);
+			if (sym == TOSYM || sym == DOWNTOSYM) {
+				getsym(sym);
+				expression(sym, tableinx);
+			}
+			if (sym != DOSYM) {
+				error(ERROR_DO_SYM);
+			}
+			getsym(sym);
+			statement(sym, tableinx);
+			break;
+		// End of for
+
+		// Case/Of/Cend
+		case CASESYM:
+			getsym(sym);
+			expression(sym, tableinx);
+			if (sym != OFSYM) {
+				error(ERROR_OF_SYM);
+			}
+			do {
+				getsym(sym);
+				if (sym == IDENT) {
+					cout << "\nThe symbol has been identified as an identifier. Cool.\n";
+					i = position(tableinx);
+					if (i == 0)
+						error(ERROR_UNKNOWN);
+					if (table[i].kind != CONSTANT)
+						error(ERROR_CONSTANT);
+				}
+				getsym(sym);
+				if (sym != COLON) {
+					error(ERROR_COLON);
+				}
+				getsym(sym);
+				statement(sym, tableinx);
+				if (sym != SEMICOLON) {
+					error(ERROR_SEMICOLON);
+				}
+			} while (sym == NUM || sym == IDENT);
+			getsym(sym);
+			cout << sym;
+			if (sym != CENDSYM) {
+				error(ERROR_CEND_SYM);
+			}
+			getsym(sym);
+			break;
+		// End case/of/cend
+
+		// Write/Writeln
+		case WRITESYM:
+			getsym(sym);
+			if (sym != LPAREN) {
+				error(ERROR_LPAREN);
+			}
+			do {
+				getsym(sym);
+				expression(sym, tableinx);
+			} while (sym == COMMA);
+			if (sym != RPAREN) {
+				error(ERROR_RPAREN);
+			}
+			getsym(sym);
+			break;
+		// end write
 	}
 }
 
@@ -519,6 +658,9 @@ char getchar(char &ch)
 	return ch;
 }
 
+// OH C++! You're making all of your symbols known by doing
+// it inside of getsym. They have to be alphabetical inside
+// of here. Dang it.
 void getsym(symbol &sym)
 {
 	char ch;
@@ -542,24 +684,44 @@ void getsym(symbol &sym)
 			sym = BEGINSYM;
 		else if (strcmp(line, "CALL") == 0)
 			sym = CALL;
+		else if (strcmp(line, "CASE") == 0)
+			sym = CASESYM;
+		else if (strcmp(line, "CEND") == 0)
+			sym = CENDSYM;
 		else if (strcmp(line, "CONST") == 0)
 			sym = CONSTSYM;
 		else if (strcmp(line, "DO") == 0)
 			sym = DOSYM;
+		else if (strcmp(line, "DOWNTO") == 0)
+			sym = DOWNTOSYM;
+		else if (strcmp(line, "ELSE") == 0)	// Added
+			sym = ELSESYM;
 		else if (strcmp(line, "END") == 0)
 			sym = ENDSYM;
+		else if (strcmp(line, "FOR") == 0)
+			sym = FORSYM;
 		else if (strcmp(line, "IF") == 0)
 			sym = IFSYM;
 		else if (strcmp(line, "ODD") == 0)
 			sym = ODDSYM;
+		else if (strcmp(line, "OF") == 0)
+			sym = OFSYM;
 		else if (strcmp(line, "PROCEDURE") == 0)
 			sym = PROCSYM;
+		else if (strcmp(line, "REPEAT") == 0)
+			sym = REPEATSYM;
 		else if (strcmp(line, "THEN") == 0)
 			sym = THENSYM;
+		else if (strcmp(line, "TO") == 0)
+			sym = TOSYM;
+		else if (strcmp(line, "UNTIL") == 0) // Added
+			sym = UNTILSYM;
 		else if (strcmp(line, "VAR") == 0)
 			sym = VARSYM;
 		else if (strcmp(line, "WHILE") == 0)
 			sym = WHILESYM;
+		else if (strcmp(line, "WRITE") == 0 || strcmp(line, "WRITELN") == 0)
+			sym = WRITESYM;
 		else
 		{
 			sym = IDENT;
@@ -680,7 +842,7 @@ int main(int argc, char* argv[])
 	getsym(sym);	// Gets the first symbol
 	block(sym, 0);	// Start processing
 
-	cout << "\n******************************Compilation succeeded.******************************\n\n";
+	cout << "\n******************************\nCompilation succeeded.\n******************************\n\n";
 
 	return 0;
 }
