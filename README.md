@@ -1,4 +1,4 @@
-CSC408 - Programming Languages
+# CSC 408 and 415 #
 
 This is a 'compiler' built by Dr. Dia Ali that I have modified.
 It really only checks the syntax of a file that is passed in. It
