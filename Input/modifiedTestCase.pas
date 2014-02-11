@@ -1,40 +1,27 @@
 CONST
-    A = 5, B = 10;
+
+        A=10;
+
 VAR
-    C, D, E;
+
+        B1,C;
+
+
 
 PROCEDURE ONE;
-    VAR B, C;
 
-    PROCEDURE TWO;
-        VAR C, D;
-        BEGIN
-            CASE C+1 OF
-                1:WRITE(2)
-                2:WRITE(2)
-            CEND
-        END;
+CONST
 
-    PROCEDURE THREE;
-        VAR X, Y, Z, A, B, C;
-        BEGIN
-            IF C < X THEN
-            BEGIN
-                CALL THREE;
-                CALL ONE;
-            END;
-        END;
+        A=5;
 
-    BEGIN
-        IF B <= -(5 + C * A) THEN
-            B := B + 1;
-    END;
+VAR
+
+        C1,D1;
 
 BEGIN
-    C := +(C + 1);
-    CALL ONE;
-    WHILE A > A / A DO
-        WHILE B >= B DO
-            IF ODD E THEN
-                E := E - 1;
-END.
+
+        D1:=30;
+
+        FOR B1:=10 DOWNTO A DO
+
+Semicolon or end expected. 
