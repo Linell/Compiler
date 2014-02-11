@@ -553,13 +553,13 @@ table.append(0)    # The first position is made empty so that we can search usin
 sym = ' '            
 
 # Path to input file
-infile = open('in.pas', 'r')
+infile = open('Input/test.pas', 'r')
 # Path to output file, will create if doesn't already exist 
 # outfile =  sys.stdout     	
 # path to input file
 # infile = open(INPUTFILE, 'r')
 # path to output file, will create if doesn't already exist 
-outfile =  open("compiler_output.txt", "a")     	
+outfile =  open("Output/compiler_output.txt", "a")     	
 
 print >> outfile, "\n*************************\nCompiling " + INPUTFILE + "\n*************************\n" # Prints which file you're working on.
 

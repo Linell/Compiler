@@ -4,20 +4,21 @@
 
 import sys, string
 
-norw = 22      # number of reserved words
-txmax = 100    # length of identifier table
-nmax = 14      # max number of digits in number
-al = 10        # length of identifiers
-CXMAX = 500    # maximum allowed lines of assembly code
+norw = 22      # Number of reserved words
+txmax = 100    # Length of identifier table
+nmax = 14      # Max number of digits in number
+al = 10        # Length of identifiers
+CXMAX = 500    # Maximum allowed lines of assembly code
 STACKSIZE = 500
 a = []
 chars = []
 rword = []
-table = []         #symbol table
-code = []         #code array
-stack = [0] * STACKSIZE     #interpreter stack
-global infile, outfile, ch, sym, id, num, linlen, kk, line, errorFlag, linelen, codeIndx, prevIndx, codeIndx0
-#-------------values to put in the symbol table------------------------------------------------------------
+table = []        # Symbol table
+code = []         # Code array
+stack = [0] * STACKSIZE     # Interpreter stack
+global infile, outfile, ch, sym, id, num, linlen, kk, line, errorFlag, linelen, codeIndx, prevIndx, codeIndx0, lineNumber
+
+#------------- Values to put in the symbol table --------------- # 
 class tableValue():                          
     def __init__(self, name, kind, level, adr, value):
         self.name = name
@@ -25,14 +26,16 @@ class tableValue():
         self.adr = adr
         self.value = value
         self.level = level
-#----------commands to put in the array of assembly code-----------------------------------------------
+
+#---------- Commands to put in the array of assembly code------- #  #
 class Cmd():                            
     def __init__(self, line, cmd, statLinks, value):
         self.line = line
         self.cmd = cmd
         self.statLinks = statLinks
         self.value = value
-#-------------function to generate assembly commands--------------------------------------------------
+
+#------------- unction to generate assembly commands------------ #
 def gen(cmd, statLinks, value):            
     global codeIndx, CXMAX
     if codeIndx > CXMAX:
@@ -41,26 +44,30 @@ def gen(cmd, statLinks, value):
     x = Cmd(codeIndx, cmd, statLinks, value)
     code.append(x)
     codeIndx += 1
-#--------------function to change jump commands---------------------------------------
+
+#--------------function to change jump commands----------------- #
 def fixJmp(cx, jmpTo):
     code[cx].value = jmpTo
-#--------------Function to print p-Code for a given block-----------------------------
+
+#--------------Function to print p-Code for a given block------- #
 def printCode():
     global codeIndx, codeIndx0
     print>>outfile
     for i  in range(codeIndx0, codeIndx):
         print >>outfile, code[i].line, code[i].cmd, code[i].statLinks, code[i].value
     prevIndx = codeIndx
-#-------------Function to find a new base----------------------------------------------
+
+#-------------Function to find a new base----------------------- #
 def Base(statLinks, base):
     b1 = base
     while(statLinks > 0):
         b1 = stack[b1]
         statLinks -= 1
     return b1
-#-------------P-Code Interpreter-------------------------------------------------------
+
+#-------------P-Code Interpreter-------------------------------- #
 def Interpret():
-    print >>outfile, "Start PL/0"
+    print >>outfile, "\nStart PL/0\n"
     top = 0
     base = 1
     pos = 0
@@ -68,6 +75,7 @@ def Interpret():
     stack[2] = 0
     stack[3] = 0
     while True:
+        print '\nCompiling at position ' + str(pos)
         instr = code[pos]
         pos += 1
         #       LIT COMMAND
@@ -169,66 +177,76 @@ def Interpret():
             top -= 1
         if pos == 0:
             break
-    print "End PL/0"
-#--------------Error Messages----------------------------------------------------------
-def error(num):
+    print >>outfile, "\n\nEnd PL/0\n"
+
+#--------------Error Messages----------------------------------- #
+def error(num, sym, tx):
     global errorFlag;
     errorFlag = 1
+
+    i = position(tx, id)
+    symName = table[i].name
+
     print
     if num == 1: 
-        print >>outfile, "Use = instead of :="
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nUse = instead of :="
     elif num ==2: 
-        print >>outfile, "= must be followed by a number."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\n= must be followed by a number."
     elif num ==3: 
-        print >>outfile, "Identifier must be followed by ="
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nIdentifier must be followed by ="
     elif num ==4: 
-        print >>outfile, "Const, Var, Procedure must be followed by an identifier."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nConst, Var, Procedure must be followed by an identifier."
     elif num ==5: 
-        print >>outfile, "Semicolon or comman missing"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nSemicolon or comman missing"
     elif num == 6: 
-        print >>outfile, "Incorrect symbol after procedure declaration."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nIncorrect symbol after procedure declaration."
     elif num == 7:  
-        print >>outfile, "Statement expected."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nStatement expected."
     elif num == 8:
-        print >>outfile, "Incorrect symbol after statment part in block."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nIncorrect symbol after statment part in block."
     elif num == 9:
-        print >>outfile, "Period expected."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nPeriod expected."
     elif num == 10: 
-        print >>outfile, "Semicolon between statements is missing."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nSemicolon between statements is missing."
     elif num == 11:  
-        print >>outfile, "Undeclard identifier"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nUndeclard identifier"
     elif num == 12:
-        print >>outfile, "Assignment to a constant or procedure is not allowed."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nAssignment to a constant or procedure is not allowed."
     elif num == 13:
-        print >>outfile, "Assignment operator := expected."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nAssignment operator := expected."
     elif num == 14: 
-        print >>outfile, "call must be followed by an identifier"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\ncall must be followed by an identifier"
     elif num == 15:  
-        print >>outfile, "Call of a constant or a variable is meaningless."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nCall of a constant or a variable is meaningless."
     elif num == 16:
-        print >>outfile, "Then expected"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThen expected"
     elif num == 17:
-        print >>outfile, "Semicolon or end expected. "
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nSemicolon or end expected. "
     elif num == 18: 
-        print >>outfile, "DO expected"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nDO expected"
     elif num == 19:  
-        print >>outfile, "Incorrect symbol following statement"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nIncorrect symbol following statement"
     elif num == 20:
-        print >>outfile, "Relational operator expected."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nRelational operator expected."
     elif num == 21:
-        print >>outfile, "Expression must not contain a procedure identifier"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nExpression must not contain a procedure identifier"
     elif num == 22: 
-        print >>outfile, "Right parenthesis missing"
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nRight parenthesis missing"
     elif num == 23:  
-        print >>outfile, "The preceding factor cannot be followed by this symbol."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThe preceding factor cannot be followed by this symbol."
     elif num == 24:
-        print >>outfile, "An expression cannot begin with this symbol."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nAn expression cannot begin with this symbol."
     elif num ==25:
-        print >>outfile, "Constant or Number is expected."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nConstant or Number is expected."
     elif num == 26: 
-        print >>outfile, "This number is too large."
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThis number is too large."
+    elif num == 27:
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nLeft parenthesis missing."
+    elif num == 404:
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThis method has not been implemented yet, sorry."
     exit(0)
-#---------GET CHARACTER FUNCTION-------------------------------------------------------------------
+
+#---------GET CHARACTER FUNCTION-------------------------------- #
 def getch():
     global  whichChar, ch, linelen, line;
     if whichChar == linelen:         #if at end of line
@@ -240,10 +258,13 @@ def getch():
         ch = line[whichChar]
         whichChar += 1
     return ch
-#----------GET SYMBOL FUNCTION---------------------------------------------------------------------
+
+#----------GET SYMBOL FUNCTION---------------------------------- # 
 def getsym():
-    global charcnt, ch, al, a, norw, rword, sym, nmax, id, num
-    while ch == " " or ch == "\n" or ch == "\r":
+    global charcnt, ch, al, a, norw, rword, sym, nmax, id, num, lineNumber
+    while ch == " " or ch == "\n" or ch == "\r" or ch == "\t":
+        if ch == "\n":
+            lineNumber += 1
         getch()
     a = []
     if ch.isalpha():
@@ -272,7 +293,7 @@ def getsym():
             if not ch.isdigit():
                 break
         if k>nmax:
-            error(30)
+            error(30, sym, tx)
         else:
             num = "".join(a)
     elif ch == ':':
@@ -302,7 +323,8 @@ def getsym():
     else:
         sym = ssym[ch]
         getch()
-#--------------POSITION FUNCTION----------------------------
+
+#--------------POSITION FUNCTION-------------------------------- #
 def position(tx, id):
     global  table;
     table[0] = tableValue(id, "TEST", "TEST", "TEST", "TEST")
@@ -310,7 +332,8 @@ def position(tx, id):
     while table[i].name != id:
         i=i-1
     return i
-#---------------ENTER PROCEDURE-------------------------------
+
+#---------------ENTER PROCEDURE--------------------------------- #
 def enter(tx, k, level, dx):
     global id, num, codeIndx;
     tx[0] += 1
@@ -325,7 +348,8 @@ def enter(tx, k, level, dx):
         x = tableValue(id, k, level, dx, "NULL")
     table.append(x)
     return dx
-#--------------CONST DECLARATION---------------------------
+
+#--------------CONST DECLARATION-------------------------------- #
 def constdeclaration(tx, level):
     global sym, id, num;
     if sym=="ident":
@@ -336,21 +360,23 @@ def constdeclaration(tx, level):
                 enter(tx, "const", level, "null")
                 getsym()
             else:
-                error(2)
+                error(2, sym, tx)
         else:
-            error(3)
+            error(3, sym, tx)
     else:
-        error(4)
-#-------------VARIABLE DECLARATION--------------------------------------
+        error(4, sym, tx)
+
+#-------------VARIABLE DECLARATION------------------------------ # 
 def vardeclaration(tx, level, dx):
     global sym;
     if sym=="ident":
         dx = enter(tx, "variable", level, dx)
         getsym()
     else:
-        error(4)
+        error(4, sym, tx)
     return dx
-#-------------BLOCK-------------------------------------------------------------
+
+#-------------BLOCK--------------------------------------------- # 
 def block(tableIndex, level):
     global sym, id, codeIndx, codeIndx0;
     tx = [1]
@@ -367,7 +393,7 @@ def block(tableIndex, level):
                 if sym != "comma":
                     break
             if sym != "semicolon":
-                error(10);
+                error(10, sym, tx);
             getsym()
         if sym == "VAR":
             while True:
@@ -376,7 +402,7 @@ def block(tableIndex, level):
                 if sym != "comma":
                     break
             if sym != "semicolon":
-                error(10)
+                error(10, sym, tx)
             getsym()
         while sym == "PROCEDURE":
             getsym()
@@ -384,14 +410,14 @@ def block(tableIndex, level):
                 enter(tx, "procedure", level, codeIndx)
                 getsym()
             else:
-                error(4)
+                error(4, sym, tx)
             if sym != "semicolon":
-                error(10)
+                error(10, sym, tx)
             getsym()
             block(tx[0], level+ 1)
         
             if sym != "semicolon":
-                error(10)
+                error(10, sym, tx)
             getsym()
     fixJmp(cx1, codeIndx)
     if tx0 != 0:
@@ -402,42 +428,52 @@ def block(tableIndex, level):
     gen("OPR", 0, 0)
     #print code for this block
     printCode()
+
 #--------------STATEMENT----------------------------------------
 def statement(tx, level):
     global sym, id, num;
     if sym == "ident":
         i = position(tx, id)
         if i==0:
-            error(11)
+            error(11, sym, tx)
         elif table[i].kind != "variable":
-            error(12)
+            error(12, sym, tx)
         getsym()
         if sym != "becomes":
-            error(13)
+            error(13, sym, tx)
         getsym()
         expression(tx, level)
         gen("STO", level -table[i].level, table[i].adr)
     elif sym == "CALL":
         getsym()
         if sym != "ident":
-            error(14)
+            error(14, sym, tx)
         i = position(tx, id)
         if i==0:
-            error(11)
+            error(11, sym, tx)
         if table[i].kind != "procedure":
-            error(15)
+            error(15, sym, tx)
         gen("CAL", level - table[i].level, table[i].adr)
         getsym()
     elif sym == "IF":
         getsym()
         condition(tx, level)
-        cx1 = codeIndx
+        cx1 = codeIndx  # save cx1
         gen("JPC", 0, 0)
         if sym != "THEN":
-            error(16)
+            error(16, sym, tx)
         getsym()
         statement(tx, level)
-        fixJmp(cx1, codeIndx)
+        if sym == "ELSE":
+            getsym()
+            cx2 = codeIndx0
+            gen("JPC", 0, 0)
+            fixJmp(cx1, codeIndx)
+            statement(tx, level)
+            fixJmp(cx2, codeIndx)
+        else:
+            # don't want to call this until we know we have no else
+            fixJmp(cx1, codeIndx)
 	# place your code for ELSE here
     elif sym == "BEGIN":
         while True:
@@ -446,7 +482,7 @@ def statement(tx, level):
             if sym != "semicolon":
                 break
         if sym != "END":
-            error(17)
+            error(17, sym, tx)
         getsym()
     elif sym == "WHILE":
         getsym()
@@ -455,21 +491,35 @@ def statement(tx, level):
         cx2 = codeIndx
         gen("JPC", 0, 0)
         if sym != "DO":
-            error(18)
+            error(18, sym, tx)
         getsym()
         statement(tx, level)
         gen("JMP", 0, cx1)
         fixJmp(cx2, codeIndx)
-#    elif sym == "REPEAT":
-    	# place your code for REPEAT here
-#    elif sym == "FOR":
-    	# place your code for FOR here
-#    elif sym == "CASE":
-    	# place your code for CASE here
-#    elif sym == "WRITE":
-    	# place your code for WRITE here
-#    elif sym == "WRITELN":
-    	# place your code for WRITELN here
+    elif sym == "REPEAT":
+    	error(404, sym, tx)
+    elif sym == "FOR":
+    	error(404, sym, tx)
+    elif sym == "CASE":
+    	error(404, sym, tx)
+    elif sym == "WRITE" or sym == "WRITELN":
+        symTest = sym # save the sym
+    	getsym()
+        if sym != "lparen":
+            error(27, sym, tx)
+        while True:
+            getsym()
+            expression(tx, level)
+            gen("OPR", 0, 14)
+            if sym != "comma":
+                break
+        if sym != "rparen":
+            error(22, sym, tx)
+        if symTest == "WRITELN":
+            gen("OPR", 0, 15)
+        getsym()
+
+
 #--------------EXPRESSION--------------------------------------
 def expression(tx, level):
     global sym;
@@ -491,6 +541,7 @@ def expression(tx, level):
             gen("OPR", 0, 2)       #add operation
         else:
             gen("OPR", 0, 3)       #subtract operation  
+
 #-------------TERM----------------------------------------------------
 def term(tx, level):
     global sym;
@@ -503,19 +554,20 @@ def term(tx, level):
             gen("OPR", 0, 4)         #multiply operation
         else:
             gen("OPR", 0, 5)         #divide operation
+
 #-------------FACTOR--------------------------------------------------
 def factor(tx, level):
     global sym, num, id;
     if sym == "ident":
         i = position(tx, id)
         if i==0:
-            error(11)
+            error(11, sym, tx)
         if table[i].kind == "const":
             gen("LIT", 0, table[i].value)
         elif table[i].kind == "variable":
             gen("LOD", level-table[i].level, table[i].adr)
         elif table[i].kind == "procedure":
-            error(21)
+            error(21, sym, tx)
         getsym()
     elif sym == "number":
         gen("LIT", 0, num)
@@ -524,10 +576,11 @@ def factor(tx, level):
         getsym()
         expression(tx, level)
         if sym != "rparen":
-            error(22)
+            error(22, sym, tx)
         getsym()
     else:
-        error(24)
+        error(24, sym, tx)
+
 #-----------CONDITION-------------------------------------------------
 def condition(tx, level):
     global sym;
@@ -538,7 +591,7 @@ def condition(tx, level):
     else:
         expression(tx, level)
         if not (sym in ["eql","neq","lss","leq","gtr","geq"]):
-            error(20)
+            error(20, sym, tx)
         else:
             temp = sym
             getsym()
@@ -555,6 +608,7 @@ def condition(tx, level):
                 gen("OPR", 0, 12)
             elif temp == "leq":
                 gen("OPR", 0, 13)
+
 #-------------------MAIN PROGRAM------------------------------------------------------------#
 rword.append('BEGIN')
 rword.append('CALL')
@@ -595,6 +649,8 @@ ssym = {'+' : "plus",
              '@' : "geq",
              ';' : "semicolon",
              ':' : "colon",}
+
+lineNumber = 1
 charcnt = 0
 whichChar = 0
 linelen = 0
@@ -603,17 +659,19 @@ kk = al
 a = []
 id= '     '
 errorFlag = 0
-table.append(0)    #making the first position in the symbol table empty
+table.append(0)      # Making the first position in the symbol table empty
 sym = ' '       
-codeIndx = 0         #first line of assembly code starts at 1
+codeIndx = 0         # First line of assembly code starts at 1
 prevIndx = 0
-infile =    open('Input/2 compiler.pas', 'r')          #path to input file
-outfile =  open("Output/compiler_output.txt", "a")     #path to output file, will create if doesn't already exist
+infile = open('Input/test.pas', 'r')   # Path to input file
+# Use "a" instead of "w+" if you don't want the file overwritten.
+#outfile =  open("Output/compiler_output.txt", "a")     # Path to output file, will create if doesn't already exist
+outfile = open("Output/compiler_output.txt", "w+")
 
-getsym()            #get first symbol
-block(0, 0)             #call block initializing with a table index of zero
-if sym != "period":      #period expected after block is completed
-    error(9)
+getsym()                # Get first symbol
+block(0, 0)             # Call block initializing with a table index of zero
+if sym != "period":     # Period expected after block is completed
+    error(9, sym, tx)
 print  
 if errorFlag == 0:
     print >>outfile, "Successful compilation!\n"

@@ -1,1 +1,44 @@
-Undeclard identifier
+
+2 INT 0 21
+3 LIT 0 50
+4 STO 1 5
+5 LIT 0 1
+6 STO 0 3
+7 LIT 0 1
+8 STO 0 4
+9 LOD 0 3
+10 LIT 0 1
+11 OPR 0 2
+12 LIT 0 2
+13 OPR 0 8
+14 JPC 0 19
+15 LOD 1 5
+16 OPR 0 14
+17 OPR 0 15
+18 JPC 0 0
+19 LIT 0 2
+20 STO 1 5
+21 LOD 1 5
+22 OPR 0 14
+23 OPR 0 0
+
+24 INT 0 6
+25 LIT 0 11
+26 LIT 0 10
+27 LIT 0 10
+28 LIT 0 10
+29 OPR 0 3
+30 OPR 0 4
+31 OPR 0 2
+32 STO 0 3
+33 CAL 0 2
+34 OPR 0 0
+Successful compilation!
+
+
+Start PL/0
+
+50 
+
+End PL/0
+
