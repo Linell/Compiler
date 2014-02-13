@@ -12,11 +12,10 @@ VAR
             F := 50;
             C1 := 1;
             D1 := 1;
-            IF C1+1 = 2 THEN
-                WRITELN(F)
-            ELSE
-                F := 2;
-                WRITE(F);
+            CASE A+1 OF
+             6:WRITELN(12);
+             3:WRITELN(12);
+            CEND;
     END;
 BEGIN
             B1:=11+A*(A-A);

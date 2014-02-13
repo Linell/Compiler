@@ -175,6 +175,11 @@ def Interpret():
             if stack[top] == instr.statLinks:
                 pos = instr.value
             top -= 1
+        # ADDING THE CTS COMMAND HERE
+        elif instr.cmd == "CTS":
+            top += 1
+            stack[top] = stack[top-1]
+        # END THE CTS COMMAND
         if pos == 0:
             break
     print >>outfile, "\n\nEnd PL/0\n"
@@ -242,6 +247,10 @@ def error(num, sym, tx):
         print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThis number is too large."
     elif num == 27:
         print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nLeft parenthesis missing."
+    elif num == 28: 
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThere must be a variable after a for."
+    elif num == 666:
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThis error message actually hasn't been implemented yet. So there's that."
     elif num == 404:
         print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThis method has not been implemented yet, sorry."
     exit(0)
@@ -444,6 +453,9 @@ def statement(tx, level):
         getsym()
         expression(tx, level)
         gen("STO", level -table[i].level, table[i].adr)
+    ##
+    #  CALL
+    ##
     elif sym == "CALL":
         getsym()
         if sym != "ident":
@@ -455,6 +467,9 @@ def statement(tx, level):
             error(15, sym, tx)
         gen("CAL", level - table[i].level, table[i].adr)
         getsym()
+    ##
+    #  IF/THEN/ELSE
+    ##
     elif sym == "IF":
         getsym()
         condition(tx, level)
@@ -466,7 +481,7 @@ def statement(tx, level):
         statement(tx, level)
         if sym == "ELSE":
             getsym()
-            cx2 = codeIndx0
+            cx2 = codeIndx
             gen("JPC", 0, 0)
             fixJmp(cx1, codeIndx)
             statement(tx, level)
@@ -474,7 +489,9 @@ def statement(tx, level):
         else:
             # don't want to call this until we know we have no else
             fixJmp(cx1, codeIndx)
-	# place your code for ELSE here
+    ##
+    #  BEGIN/END
+    ##        
     elif sym == "BEGIN":
         while True:
             getsym()
@@ -484,6 +501,9 @@ def statement(tx, level):
         if sym != "END":
             error(17, sym, tx)
         getsym()
+    ##
+    #  WHILE/TO
+    ##
     elif sym == "WHILE":
         getsym()
         cx1 = codeIndx
@@ -496,12 +516,120 @@ def statement(tx, level):
         statement(tx, level)
         gen("JMP", 0, cx1)
         fixJmp(cx2, codeIndx)
+    ##
+    #  REPEAT/UNTIL
+    ##
     elif sym == "REPEAT":
-    	error(404, sym, tx)
+    	cx = codeIndx
+        while True:
+            getsym()
+            statement(tx, level)
+            if sym != "semicolon":
+                break
+        if sym != "UNTIL":
+            error(27)
+        getsym()
+        condition(tx, level)
+        gen("JPC", 0, cx)
+    ##
+    #  FOR/TO|DOWNTO/DO
+    ##
     elif sym == "FOR":
-    	error(404, sym, tx)
+        getsym()
+        if sym != "ident":
+            error(28, tx, id)
+        i = position(tx, id)
+        if table[i].kind != "variable":
+            error(666, sym, tx)
+        if i==0:
+            error(11, sym, tx)
+        getsym()
+        if sym != "becomes":
+            error(29, tx, id)
+        getsym()
+        expression(tx, level)
+        gen("STO", level -table[i].level, table[i].adr)
+        if sym == "TO" or sym == "DOWNTO":
+            pass
+        else:
+            error(30, tx, id)
+        temp = sym
+        getsym()
+        expression(tx, level)
+        cx1 = codeIndx
+        gen("CTS", 0, 0)
+        gen("LOD", level -table[i].level, table[i].adr)
+        if temp == "TO":
+            gen("OPR", 0, 11)
+        elif temp == "DOWNTO":
+            gen("OPR", 0, 13)
+        else:
+            error(666, tx, id)
+        cx2 = codeIndx
+        gen("JPC", 0, 0)
+        if sym != "DO":
+            error(18, tx, id)
+        getsym()
+        statement(tx, level)
+        gen("LOD", level -table[i].level, table[i].adr)
+        gen("LIT", 0, 1)
+        if temp == "TO":
+            gen("OPR", 0, 2)
+        elif temp == "DOWNTO":
+            gen("OPR", 0, 3)
+        gen("STO", level -table[i].level, table[i].adr)
+        gen("JMP", 0, cx1)
+        fixJmp(cx2, codeIndx)
+        gen("INT", 0, -1)
+    ##
+    #  CASE
+    ##
     elif sym == "CASE":
-    	error(404, sym, tx)
+        firstCase = True
+        getsym()
+        expression(tx, level)
+        if sym != "OF":
+            error(32, sym, tx)
+        while True:
+            getsym()
+            if sym == "number" or sym == "ident":
+                if sym == "ident":
+                    i = position(tx, id)
+                    if table[i].kind != "const":
+                        error(25, sym, tx)
+                    if i == 0:
+                        error(11, sym, tx)
+                    gen("CTS", 0, 0)
+                    gen("LIT", 0, table[i].value)
+                else:
+                    gen("CTS", 0, 0)
+                    gen("LIT", 0, num)
+                gen("OPR", 0, 8)
+                cx1 = codeIndx
+                gen("JPC", 0, 0)
+                getsym()
+                if sym != "colon":
+                    error(666, sym, tx)
+                getsym()
+                statement(tx, level)
+                if sym != "semicolon":
+                    error(666, sym, tx)
+                #getsym()
+                if firstCase == True:
+                    cx2 = codeIndx
+                    gen("JMP", 0, 0)
+                    firstCase = False
+                else:
+                    gen("JMP", 0, cx2)
+                    fixJmp(cx1, codeIndx)
+            else:
+                break
+        fixJmp(cx2, codeIndx)
+        gen("INT", 0, -1)
+        getsym()
+    ##
+    #  WRITE & WRITELN
+    ##       
     elif sym == "WRITE" or sym == "WRITELN":
         symTest = sym # save the sym
     	getsym()
@@ -663,10 +791,10 @@ table.append(0)      # Making the first position in the symbol table empty
 sym = ' '       
 codeIndx = 0         # First line of assembly code starts at 1
 prevIndx = 0
-infile = open('Input/test.pas', 'r')   # Path to input file
+infile = open('Input/Assgn 2 test4.txt', 'r')   # Path to input file
 # Use "a" instead of "w+" if you don't want the file overwritten.
-#outfile =  open("Output/compiler_output.txt", "a")     # Path to output file, will create if doesn't already exist
-outfile = open("Output/compiler_output.txt", "w+")
+outfile =  open("Output/compiler_output2.txt", "a")     # Path to output file, will create if doesn't already exist
+#outfile = open("Output/compiler_output.txt", "w+")
 
 getsym()                # Get first symbol
 block(0, 0)             # Call block initializing with a table index of zero
