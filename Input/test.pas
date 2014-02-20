@@ -2,7 +2,14 @@ CONST
         A=10;
 VAR
         B1,C,F;
-
+FUNCTION TEST;
+VAR
+    L2,L3;
+BEGIN
+    L2 := 3;
+    L3 := 2;
+    L2*L3;
+END;
     PROCEDURE ONE;
     CONST
             A=5;

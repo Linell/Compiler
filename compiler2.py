@@ -4,7 +4,7 @@
 
 import sys, string
 
-norw = 22      # Number of reserved words
+norw = 26      # Number of reserved words
 txmax = 100    # Length of identifier table
 nmax = 14      # Max number of digits in number
 al = 10        # Length of identifiers
@@ -16,7 +16,7 @@ rword = []
 table = []        # Symbol table
 code = []         # Code array
 stack = [0] * STACKSIZE     # Interpreter stack
-global infile, outfile, ch, sym, id, num, linlen, kk, line, errorFlag, linelen, codeIndx, prevIndx, codeIndx0, lineNumber
+global infile, outfile, ch, sym, id, num, linlen, kk, line, errorFlag, linelen, codeIndx, prevIndx, codeIndx0, lineNumber, inFuncBody
 
 #------------- Values to put in the symbol table --------------- # 
 class tableValue():                          
@@ -249,6 +249,18 @@ def error(num, sym, tx):
         print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nLeft parenthesis missing."
     elif num == 28: 
         print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThere must be a variable after a for."
+    elif num == 29:
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nYou may only assign to a function within its body." 
+    elif num == 30:
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nIdentifier must be a variable."
+    elif num == 31:
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nExpecting either TO or DOWNTO." 
+    elif num == 32:
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nExpecting a colon."
+    elif num == 33:
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nExpecting a semicolon."   
+    elif num == 34:
+        print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nMust be a function." 
     elif num == 666:
         print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nThis error message actually hasn't been implemented yet. So there's that."
     elif num == 404:
@@ -289,7 +301,7 @@ def getsym():
             if rword[i] == id:
                 sym = rword[i]
                 flag = 1
-        if  flag == 0:    #sym is not a reserved word
+        if  flag == 0:    # sym is not a reserved word
             sym = "ident"
     elif ch.isdigit():
         k=0
@@ -355,6 +367,9 @@ def enter(tx, k, level, dx):
         dx += 1
     elif k == "procedure":
         x = tableValue(id, k, level, dx, "NULL")
+    # Adding the function stuff here. To be honest, I'm not sure if it's right.
+    elif k == "function":
+        x = tableValue(id, k, level, dx, "NULL")
     table.append(x)
     return dx
 
@@ -387,14 +402,15 @@ def vardeclaration(tx, level, dx):
 
 #-------------BLOCK--------------------------------------------- # 
 def block(tableIndex, level):
-    global sym, id, codeIndx, codeIndx0;
+    global sym, id, codeIndx, codeIndx0, inFuncBody;
     tx = [1]
     tx[0] = tableIndex
     tx0 = tableIndex
     dx = 3
     cx1 = codeIndx
     gen("JMP", 0 , 0)
-    while sym == "PROCEDURE" or sym == "VAR" or sym == "CONST": 
+    # Adding Function code here
+    while sym == "PROCEDURE" or sym == "VAR" or sym == "CONST" or sym == "FUNCTION": 
         if sym == "CONST":
             while True:               #makeshift do while in python
                 getsym()
@@ -413,10 +429,16 @@ def block(tableIndex, level):
             if sym != "semicolon":
                 error(10, sym, tx)
             getsym()
-        while sym == "PROCEDURE":
-            getsym()
+        # Adding function here
+        while sym == "PROCEDURE" or sym == "FUNCTION":
+            savedSym = sym
+            getsym()           
             if sym == "ident":
-                enter(tx, "procedure", level, codeIndx)
+                if savedSym == "PROCEDURE":
+                    enter(tx, "procedure", level, codeIndx)
+                else:
+                    enter(tx, "function", level, codeIndx)
+                    inFuncBody = id
                 getsym()
             else:
                 error(4, sym, tx)
@@ -424,7 +446,8 @@ def block(tableIndex, level):
                 error(10, sym, tx)
             getsym()
             block(tx[0], level+ 1)
-        
+            inFuncBody = "NULL"
+
             if sym != "semicolon":
                 error(10, sym, tx)
             getsym()
@@ -440,19 +463,26 @@ def block(tableIndex, level):
 
 #--------------STATEMENT----------------------------------------
 def statement(tx, level):
-    global sym, id, num;
+    global sym, id, num, inFuncBody;
+    # Adding function stuff here too
     if sym == "ident":
         i = position(tx, id)
+        symType = table[i].kind
         if i==0:
             error(11, sym, tx)
-        elif table[i].kind != "variable":
+        elif table[i].kind != "variable" and table[i].kind != "function":
             error(12, sym, tx)
+        if table[i].kind == "function" and inFuncBody != id:
+            error(29, sym, tx)
         getsym()
         if sym != "becomes":
             error(13, sym, tx)
         getsym()
         expression(tx, level)
-        gen("STO", level -table[i].level, table[i].adr)
+        if symType == "variable":
+            gen("STO", level -table[i].level, table[i].adr)
+        elif symType == "function":
+            gen("STO", 0, -1)
     ##
     #  CALL
     ##
@@ -472,7 +502,7 @@ def statement(tx, level):
     ##
     elif sym == "IF":
         getsym()
-        condition(tx, level)
+        generalExpression(tx, level)
         cx1 = codeIndx  # save cx1
         gen("JPC", 0, 0)
         if sym != "THEN":
@@ -507,7 +537,7 @@ def statement(tx, level):
     elif sym == "WHILE":
         getsym()
         cx1 = codeIndx
-        condition(tx, level)
+        generalExpression(tx, level)
         cx2 = codeIndx
         gen("JPC", 0, 0)
         if sym != "DO":
@@ -529,7 +559,7 @@ def statement(tx, level):
         if sym != "UNTIL":
             error(27)
         getsym()
-        condition(tx, level)
+        generalExpression(tx, level)
         gen("JPC", 0, cx)
     ##
     #  FOR/TO|DOWNTO/DO
@@ -540,7 +570,7 @@ def statement(tx, level):
             error(28, tx, id)
         i = position(tx, id)
         if table[i].kind != "variable":
-            error(666, sym, tx)
+            error(30, sym, tx)
         if i==0:
             error(11, sym, tx)
         getsym()
@@ -564,7 +594,7 @@ def statement(tx, level):
         elif temp == "DOWNTO":
             gen("OPR", 0, 13)
         else:
-            error(666, tx, id)
+            error(31, tx, id)
         cx2 = codeIndx
         gen("JPC", 0, 0)
         if sym != "DO":
@@ -609,16 +639,16 @@ def statement(tx, level):
                 gen("JPC", 0, 0)
                 getsym()
                 if sym != "colon":
-                    error(666, sym, tx)
+                    error(32, sym, tx)
                 getsym()
                 statement(tx, level)
                 if sym != "semicolon":
-                    error(666, sym, tx)
-                #getsym()
+                    error(33, sym, tx)
                 if firstCase == True:
                     cx2 = codeIndx
                     gen("JMP", 0, 0)
                     firstCase = False
+                    fixJmp(cx1, codeIndx)
                 else:
                     gen("JMP", 0, cx2)
                     fixJmp(cx1, codeIndx)
@@ -659,13 +689,12 @@ def expression(tx, level):
             gen("OPR", 0, 1)
     else:
         term(tx, level)
-    
-    while sym == "plus" or sym == "minus":
+    # Adding an or operation here. But... there has to be more.
+    while sym == "plus" or sym == "minus" or sym == "OR":
         addop = sym
         getsym()
         term(tx, level)
-        
-        if(addop == "plus"):
+        if(addop == "plus" or addop == "OR"):
             gen("OPR", 0, 2)       #add operation
         else:
             gen("OPR", 0, 3)       #subtract operation  
@@ -674,11 +703,12 @@ def expression(tx, level):
 def term(tx, level):
     global sym;
     factor(tx, level)
-    while sym=="times" or sym=="slash":
+    # The and symbol has been added. Once again, there _has_ to be more.
+    while sym=="times" or sym=="slash" or sym == "AND":
         mulop = sym
         getsym()
         factor(tx, level)
-        if mulop == "times":
+        if mulop == "times" or mulop == "AND":
             gen("OPR", 0, 4)         #multiply operation
         else:
             gen("OPR", 0, 5)         #divide operation
@@ -694,7 +724,7 @@ def factor(tx, level):
             gen("LIT", 0, table[i].value)
         elif table[i].kind == "variable":
             gen("LOD", level-table[i].level, table[i].adr)
-        elif table[i].kind == "procedure":
+        elif table[i].kind == "procedure" or table[i].kind == "function":
             error(21, sym, tx)
         getsym()
     elif sym == "number":
@@ -702,15 +732,31 @@ def factor(tx, level):
         getsym()
     elif sym == "lparen":
         getsym()
-        expression(tx, level)
+        generalExpression(tx, level) # this is now a general expression
         if sym != "rparen":
             error(22, sym, tx)
         getsym()
+    # Adding stuff here, yo
+    elif sym == "CALL": # not sure if I need to getsym...
+        getsym()
+        i = position(tx, id)
+        if sym != "ident" or table[i].kind != "function":
+            error(34, sym, tx) # TODO: add must be a function error
+        else:
+            gen("INT", 0, 1)
+            gen("CAL", level-table[i].level, table[i].adr)
+        getsym()
+    elif sym == "NOT":
+        getsym()
+        factor(tx, level)
+        gen("LIT", 0, 0)
+        gen("OPR", 0, 8)
+    # Ending the added stuff, Mr. Sherlock
     else:
         error(24, sym, tx)
 
 #-----------CONDITION-------------------------------------------------
-def condition(tx, level):
+def generalExpression(tx, level):
     global sym;
     if sym == "ODD":
         getsym()
@@ -719,7 +765,9 @@ def condition(tx, level):
     else:
         expression(tx, level)
         if not (sym in ["eql","neq","lss","leq","gtr","geq"]):
-            error(20, sym, tx)
+            #error(20, sym, tx)
+            # Based on the 'General Expression' part of the document, this:
+            pass
         else:
             temp = sym
             getsym()
@@ -760,23 +808,30 @@ rword.append('OF')
 rword.append('CEND')
 rword.append('WRITE')
 rword.append('WRITELN')
+# Additions
+rword.append('AND')
+rword.append('OR')
+rword.append('FUNCTION')
+rword.append('NOT')
 
 ssym = {'+' : "plus",
-             '-' : "minus",
-             '*' : "times",       
-             '/' : "slash",
-             '(' : "lparen",
-             ')' : "rparen",
-             '=' : "eql",
-             ',' : "comma",
-             '.' : "period",
-             '#' : "neq",
-             '<' : "lss",
-             '>' : "gtr",
-             '"' : "leq",
-             '@' : "geq",
-             ';' : "semicolon",
-             ':' : "colon",}
+            '-' : "minus",
+            '*' : "times",       
+            '/' : "slash",
+            '(' : "lparen",
+            ')' : "rparen",
+            '=' : "eql",
+            ',' : "comma",
+            '.' : "period",
+            '#' : "neq",
+            '<' : "lss",
+            '>' : "gtr",
+            '"' : "leq",
+            '@' : "geq",
+            ';' : "semicolon",
+            ':' : "colon",
+            'or' : "or",
+            'and' : "and",}
 
 lineNumber = 1
 charcnt = 0
@@ -791,7 +846,7 @@ table.append(0)      # Making the first position in the symbol table empty
 sym = ' '       
 codeIndx = 0         # First line of assembly code starts at 1
 prevIndx = 0
-infile = open('Input/Assgn 2 test4.txt', 'r')   # Path to input file
+infile = open('Input/err.pas', 'r')   # Path to input file
 # Use "a" instead of "w+" if you don't want the file overwritten.
 outfile =  open("Output/compiler_output2.txt", "a")     # Path to output file, will create if doesn't already exist
 #outfile = open("Output/compiler_output.txt", "w+")
