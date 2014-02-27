@@ -4,7 +4,7 @@
 
 import sys, string
 
-norw = 26      # Number of reserved words
+norw = 28      # Number of reserved words
 txmax = 100    # Length of identifier table
 nmax = 14      # Max number of digits in number
 al = 10        # Length of identifiers
@@ -148,7 +148,7 @@ def Interpret():
                 print >>outfile, stack[top],
                 top -= 1
             elif instr.value == 15:        #write/print a newline
-                print
+                print >>outfile
         #      LOD COMMAND
         elif instr.cmd == "LOD":
             top += 1
@@ -400,6 +400,25 @@ def vardeclaration(tx, level, dx):
         error(4, sym, tx)
     return dx
 
+#------------- Value Parameter Thing --------------------------- #
+def valparamdeclaration(tx, level, dx):
+    global sym;
+    if sym == "ident":
+        # Stuff here
+        getsym()
+    else:
+        error(666, sym, tx) # TODO: Create error for whatever this is
+    return dx
+
+#----------- Reference Parameter Thing ------------------------- #
+def refparamdeclaration(tx, level, dx):
+    global sym;
+    if sym == "ident":
+        # Stuff here
+        getsym()
+    else:
+        error(666, sym, tx) # TODO: Create error for whatever this is
+
 #-------------BLOCK--------------------------------------------- # 
 def block(tableIndex, level):
     global sym, id, codeIndx, codeIndx0, inFuncBody;
@@ -409,7 +428,33 @@ def block(tableIndex, level):
     dx = 3
     cx1 = codeIndx
     gen("JMP", 0 , 0)
-    # Adding Function code here
+    # Value and reference parameters
+    # if level > 0:
+    #     if sym == "semicolon":
+    #         break
+    #     if sym != "lparen":
+    #         error(27, sym, tx)
+    #     getsym()
+    #     if sym == "VAL":
+    #         # Do value stuff
+    #         while True:
+    #             getsym() # In theory, this should be fetching us an ident
+    #             valparamdeclaration(tx, level, dx)
+    #             if sym != "comma":
+    #                 break
+    #     elif sym == "REF":
+    #         # Do ref stuff
+    #         while True:
+    #             getsym() # In theory, this should be fetching us an ident
+    #             refparamdeclaration(tx, level, dx)
+    #             if sym != "comma":
+    #                 break
+    #         if sym != "rparen":
+    #             error(666, sym, tx) # TODO: Figure out which error this should be
+    #         getsym()
+    #     else:
+    #         error(404, sym, tx)
+    # End addition of stuff here
     while sym == "PROCEDURE" or sym == "VAR" or sym == "CONST" or sym == "FUNCTION": 
         if sym == "CONST":
             while True:               #makeshift do while in python
@@ -447,7 +492,6 @@ def block(tableIndex, level):
             getsym()
             block(tx[0], level+ 1)
             inFuncBody = "NULL"
-
             if sym != "semicolon":
                 error(10, sym, tx)
             getsym()
@@ -495,6 +539,7 @@ def statement(tx, level):
             error(11, sym, tx)
         if table[i].kind != "procedure":
             error(15, sym, tx)
+        gen("INT", 0, 1)
         gen("CAL", level - table[i].level, table[i].adr)
         getsym()
     ##
@@ -512,7 +557,7 @@ def statement(tx, level):
         if sym == "ELSE":
             getsym()
             cx2 = codeIndx
-            gen("JPC", 0, 0)
+            gen("JMP", 0, 0)
             fixJmp(cx1, codeIndx)
             statement(tx, level)
             fixJmp(cx2, codeIndx)
@@ -651,7 +696,7 @@ def statement(tx, level):
                     fixJmp(cx1, codeIndx)
                 else:
                     gen("JMP", 0, cx2)
-                    fixJmp(cx1, codeIndx)
+                fixJmp(cx1, codeIndx)
             else:
                 break
         fixJmp(cx2, codeIndx)
@@ -676,7 +721,6 @@ def statement(tx, level):
         if symTest == "WRITELN":
             gen("OPR", 0, 15)
         getsym()
-
 
 #--------------EXPRESSION--------------------------------------
 def expression(tx, level):
@@ -808,11 +852,13 @@ rword.append('OF')
 rword.append('CEND')
 rword.append('WRITE')
 rword.append('WRITELN')
-# Additions
 rword.append('AND')
 rword.append('OR')
 rword.append('FUNCTION')
 rword.append('NOT')
+# Additions
+rword.append('VAL')
+rword.append('REF')
 
 ssym = {'+' : "plus",
             '-' : "minus",
@@ -831,7 +877,9 @@ ssym = {'+' : "plus",
             ';' : "semicolon",
             ':' : "colon",
             'or' : "or",
-            'and' : "and",}
+            'and' : "and",
+            'val' : "VAR",
+            'ref' : "REF",}
 
 lineNumber = 1
 charcnt = 0
@@ -848,8 +896,8 @@ codeIndx = 0         # First line of assembly code starts at 1
 prevIndx = 0
 infile = open('Input/err.pas', 'r')   # Path to input file
 # Use "a" instead of "w+" if you don't want the file overwritten.
-outfile =  open("Output/compiler_output2.txt", "a")     # Path to output file, will create if doesn't already exist
-#outfile = open("Output/compiler_output.txt", "w+")
+#outfile =  open("Output/compiler_output2.txt", "a")     # Path to output file, will create if doesn't already exist
+outfile = open("Output/compiler_output.txt", "w+")
 
 getsym()                # Get first symbol
 block(0, 0)             # Call block initializing with a table index of zero

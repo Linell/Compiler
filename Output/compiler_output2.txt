@@ -175,3 +175,4 @@ err.pas
 16 OPR 0 0
 Error on line number: 10 on ident
 You may only assign to a function within its body.
+
