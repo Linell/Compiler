@@ -2,6 +2,7 @@
 #    Linell Bonnette    #
 #########################
 
+# test
 import sys, string
 
 norw = 28      # Number of reserved words
@@ -429,31 +430,32 @@ def block(tableIndex, level):
     cx1 = codeIndx
     gen("JMP", 0 , 0)
     # Value and reference parameters
-    # if level > 0:
-    #     if sym == "semicolon":
-    #         break
-    #     if sym != "lparen":
-    #         error(27, sym, tx)
-    #     getsym()
-    #     if sym == "VAL":
-    #         # Do value stuff
-    #         while True:
-    #             getsym() # In theory, this should be fetching us an ident
-    #             valparamdeclaration(tx, level, dx)
-    #             if sym != "comma":
-    #                 break
-    #     elif sym == "REF":
-    #         # Do ref stuff
-    #         while True:
-    #             getsym() # In theory, this should be fetching us an ident
-    #             refparamdeclaration(tx, level, dx)
-    #             if sym != "comma":
-    #                 break
-    #         if sym != "rparen":
-    #             error(666, sym, tx) # TODO: Figure out which error this should be
-    #         getsym()
-    #     else:
-    #         error(404, sym, tx)
+    if level > 0:
+        if sym == "semicolon":
+            # I honestly don't know what to do here.
+            pass
+        if sym != "lparen":
+            error(27, sym, tx)
+        getsym()
+        if sym == "VAL":
+            # Do value stuff
+            while True:
+                getsym() # In theory, this should be fetching us an ident
+                valparamdeclaration(tx, level, dx)
+                if sym != "comma":
+                    break
+        elif sym == "REF":
+            # Do ref stuff
+            while True:
+                getsym() # In theory, this should be fetching us an ident
+                refparamdeclaration(tx, level, dx)
+                if sym != "comma":
+                    break
+            if sym != "rparen":
+                error(666, sym, tx) # TODO: Figure out which error this should be
+            getsym()
+        else:
+            error(404, sym, tx)
     # End addition of stuff here
     while sym == "PROCEDURE" or sym == "VAR" or sym == "CONST" or sym == "FUNCTION": 
         if sym == "CONST":
@@ -508,8 +510,7 @@ def block(tableIndex, level):
 #--------------STATEMENT----------------------------------------
 def statement(tx, level):
     global sym, id, num, inFuncBody;
-    # Adding function stuff here too
-    if sym == "ident":
+    if sym == "ident" or sym == "val" or sym == "ref":      # Adding val and ref stuff
         i = position(tx, id)
         symType = table[i].kind
         if i==0:
@@ -523,13 +524,18 @@ def statement(tx, level):
             error(13, sym, tx)
         getsym()
         expression(tx, level)
-        if symType == "variable":
+        if symType == "variable" or symType == "val":   # More additions here
             gen("STO", level -table[i].level, table[i].adr)
         elif symType == "function":
             gen("STO", 0, -1)
+        elif symType == "ref":  # Even more additions here
+            gen("STI", lev -table[i].level, table[i].adr)
+        else:
+            error(666, sym, tx)     # TODO: Replace with better errors
     ##
     #  CALL
     ##
+    #       NOTE THAT I NEED TO MODIFY THIS
     elif sym == "CALL":
         getsym()
         if sym != "ident":
@@ -733,7 +739,6 @@ def expression(tx, level):
             gen("OPR", 0, 1)
     else:
         term(tx, level)
-    # Adding an or operation here. But... there has to be more.
     while sym == "plus" or sym == "minus" or sym == "OR":
         addop = sym
         getsym()
@@ -747,7 +752,6 @@ def expression(tx, level):
 def term(tx, level):
     global sym;
     factor(tx, level)
-    # The and symbol has been added. Once again, there _has_ to be more.
     while sym=="times" or sym=="slash" or sym == "AND":
         mulop = sym
         getsym()
@@ -760,14 +764,16 @@ def term(tx, level):
 #-------------FACTOR--------------------------------------------------
 def factor(tx, level):
     global sym, num, id;
-    if sym == "ident":
+    if sym == "ident" or sym == "val" or sym == "ref":      # Added this here
         i = position(tx, id)
         if i==0:
             error(11, sym, tx)
         if table[i].kind == "const":
             gen("LIT", 0, table[i].value)
-        elif table[i].kind == "variable":
+        elif table[i].kind == "variable" or table[i].kind == "val":
             gen("LOD", level-table[i].level, table[i].adr)
+        elif table[i].kind == "ref":                            # Specifically this, yo
+            gen("LDI", lev-table[i].level, table[i].adr)
         elif table[i].kind == "procedure" or table[i].kind == "function":
             error(21, sym, tx)
         getsym()
