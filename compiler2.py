@@ -27,6 +27,7 @@ class tableValue():
         self.adr = adr
         self.value = value
         self.level = level
+        self.params = []
 
 #---------- Commands to put in the array of assembly code------- #  #
 class Cmd():                            
@@ -385,6 +386,11 @@ def enter(tx, k, level, dx):
     # Adding the function stuff here. To be honest, I'm not sure if it's right.
     elif k == "function":
         x = tableValue(id, k, level, dx, "NULL")
+    elif k == "value":
+        x = tableValue(id, k, level, dx, "NULL")
+    elif k == "reference":
+        x = tableValue(id, k, level, dx, "NULL")
+    print 'Line 393: ' + k
     table.append(x)
     return dx
 
@@ -416,26 +422,31 @@ def vardeclaration(tx, level, dx):
     return dx
 
 #------------- Value Parameter Thing --------------------------- #
-def valparamdeclaration(tx, level, dx):
+def valparamdeclaration(tx, level, dx, tx0):
     global sym;
     if sym == "ident":
-        # Stuff here
+        dx = enter(tx, "value", level, dx)
+        table[tx0].params.insert(dx - 4, False)
         getsym()
     else:
+        print 'valparam'
         error(666, sym, tx) # TODO: Create error for whatever this is
     return dx
 
 #----------- Reference Parameter Thing ------------------------- #
-def refparamdeclaration(tx, level, dx):
+def refparamdeclaration(tx, level, dx, tx0):
     global sym;
     if sym == "ident":
-        # Stuff here
+        dx = enter(tx, "reference", level, dx)
+        table[tx0].params.insert(dx - 4, True)
         getsym()
     else:
+        print 'refparam'
         error(666, sym, tx) # TODO: Create error for whatever this is
 
 #-------------BLOCK--------------------------------------------- # 
 def block(tableIndex, level):
+    print 'Line 442: ' + sym
     global sym, id, codeIndx, codeIndx0, inFuncBody;
     tx = [1]
     tx[0] = tableIndex
@@ -444,32 +455,40 @@ def block(tableIndex, level):
     cx1 = codeIndx
     gen("JMP", 0 , 0)
     # Value and reference parameters
+    # The issue is that I'm getting REF here. Not a dang semicolon or lparen.
+    # Dangit.
     if level > 0:
-        if sym == "semicolon":
-            # I honestly don't know what to do here.
-            pass
-        if sym != "lparen":
-            error(27, sym, tx)
-        getsym()
-        if sym == "VAL":
-            # Do value stuff
+        print 'Line 454: ' + sym
+        if sym == "lparen":
             while True:
-                getsym() # In theory, this should be fetching us an ident
-                valparamdeclaration(tx, level, dx)
-                if sym != "comma":
+                getsym()
+                if sym == "VAL":
+                    # Do value stuff
+                    while True:
+                        getsym() # In theory, this should be fetching us an ident
+                        valparamdeclaration(tx, level, dx, tx[0])
+                        if sym != "comma":
+                            break
+                elif sym == "REF":
+                    # Do ref stuff
+                    while True:
+                        getsym() # In theory, this should be fetching us an ident
+                        refparamdeclaration(tx, level, dx, tx[0])
+                        if sym != "comma":
+                            break
+                if sym != "semicolon":
                     break
-        elif sym == "REF":
-            # Do ref stuff
-            while True:
-                getsym() # In theory, this should be fetching us an ident
-                refparamdeclaration(tx, level, dx)
-                if sym != "comma":
-                    break
-            if sym != "rparen":
-                error(666, sym, tx) # TODO: Figure out which error this should be
             getsym()
-        else:
-            error(404, sym, tx)
+            if sym != "rparen":
+                print sym
+                print 'line 480'
+                error(666, sym, tx) # TODO: Figure out which error this should be
+            else:
+                getsym()
+                if sym != "semicolon":
+                    error(666, sym, tx) # TODO: Make better error here
+                getsym()
+
     # End addition of stuff here
     while sym == "PROCEDURE" or sym == "VAR" or sym == "CONST" or sym == "FUNCTION": 
         if sym == "CONST":
@@ -493,7 +512,8 @@ def block(tableIndex, level):
         # Adding function here
         while sym == "PROCEDURE" or sym == "FUNCTION":
             savedSym = sym
-            getsym()           
+            getsym()
+            print 'Line 501: ' + sym           
             if sym == "ident":
                 if savedSym == "PROCEDURE":
                     enter(tx, "procedure", level, codeIndx)
@@ -501,11 +521,12 @@ def block(tableIndex, level):
                     enter(tx, "function", level, codeIndx)
                     inFuncBody = id
                 getsym()
+                print 'Line 509: ' + sym
             else:
                 error(4, sym, tx)
-            if sym != "semicolon":
-                error(10, sym, tx)
-            getsym()
+            # if sym != "semicolon":    # Removed this. Well. Sorta.
+            #     error(10, sym, tx)
+            #getsym()
             block(tx[0], level+ 1)
             inFuncBody = "NULL"
             if sym != "semicolon":
@@ -524,7 +545,7 @@ def block(tableIndex, level):
 #--------------STATEMENT----------------------------------------
 def statement(tx, level):
     global sym, id, num, inFuncBody;
-    if sym == "ident" or sym == "val" or sym == "ref":      # Adding val and ref stuff
+    if sym == "ident" or sym == "value" or sym == "reference":      # Adding val and ref stuff
         i = position(tx, id)
         symType = table[i].kind
         if i==0:
@@ -542,14 +563,14 @@ def statement(tx, level):
             gen("STO", level -table[i].level, table[i].adr)
         elif symType == "function":
             gen("STO", 0, -1)
-        elif symType == "ref":  # Even more additions here
+        elif symType == "reference":  # Even more additions here
             gen("STI", lev -table[i].level, table[i].adr)
         else:
+            print 'line 563'
             error(666, sym, tx)     # TODO: Replace with better errors
     ##
     #  CALL
     ##
-    #       NOTE THAT I NEED TO MODIFY THIS
     elif sym == "CALL":
         getsym()
         if sym != "ident":
@@ -559,9 +580,32 @@ def statement(tx, level):
             error(11, sym, tx)
         if table[i].kind != "procedure":
             error(15, sym, tx)
-        gen("INT", 0, 1)
-        gen("CAL", level - table[i].level, table[i].adr)
+        # Adding stuff here
         getsym()
+        if sym == "lparen":
+            p = 0
+            gen("INT", 0, 3)
+            getsym()
+            while True:
+                if sym == "ident":
+                    i = position(tx, id)
+                    if table[i].kind == "value" or table[i].kind == "variable":
+                        gen("LDA", lev-table[i].level, table[i].adr)
+                    elif table[i].kind == "reference":
+                        gen("LOD", lev-table[i].level, table[i].adr)
+                    getsym()
+                else:
+                    expression(tx, level)
+                p += 1
+                if sym != "comma":
+                    break
+                getsym()
+            if sym != "rparen":
+                error(22, sym, tx)
+            gen("INT", 0, -(3+p))
+            getsym()
+        # Last thing to happen
+        gen("CAL", level - table[i].level, table[i].adr)
     ##
     #  IF/THEN/ELSE
     ##
@@ -778,15 +822,15 @@ def term(tx, level):
 #-------------FACTOR--------------------------------------------------
 def factor(tx, level):
     global sym, num, id;
-    if sym == "ident" or sym == "val" or sym == "ref":      # Added this here
+    if sym == "ident" or sym == "value" or sym == "reference":      # Added this here
         i = position(tx, id)
         if i==0:
             error(11, sym, tx)
         if table[i].kind == "const":
             gen("LIT", 0, table[i].value)
-        elif table[i].kind == "variable" or table[i].kind == "val":
+        elif table[i].kind == "variable" or table[i].kind == "value":
             gen("LOD", level-table[i].level, table[i].adr)
-        elif table[i].kind == "ref":                            # Specifically this, yo
+        elif table[i].kind == "reference":                            # Specifically this, yo
             gen("LDI", lev-table[i].level, table[i].adr)
         elif table[i].kind == "procedure" or table[i].kind == "function":
             error(21, sym, tx)
@@ -801,13 +845,40 @@ def factor(tx, level):
             error(22, sym, tx)
         getsym()
     # Adding stuff here, yo
-    elif sym == "CALL": # not sure if I need to getsym...
+    elif sym == "CALL":
         getsym()
         i = position(tx, id)
         if sym != "ident" or table[i].kind != "function":
-            error(34, sym, tx) # TODO: add must be a function error
+            error(34, sym, tx)
         else:
             gen("INT", 0, 1)
+            # Adding things here
+            getsym()
+            if sym == "lparen":
+                p = 0
+                gen("INT", 0, 3)
+                getsym()
+                while True:
+                    if sym == "ident":
+                        i = position(tx, id)
+                        if i == 0:
+                            print 'line 859'
+                            error(666, sym, tx)
+                        if table[i].kind == "value" or table[i].kind == "variable":
+                            gen("LDA", lev-table[i].level, table[i].adr)
+                        elif table[i].kind == "reference":
+                            gen("LOD", lev-table[i].level, table[i].adr)
+                        getsym()
+                    else:
+                        expression(tx, level)
+                    p += 1
+                    if sym != "comma":
+                        break
+                    getsym()
+                if sym != "rparen":
+                    error(22, sym, tx)
+                gen("INT", 0, -(3+p))
+            # Ending stuff
             gen("CAL", level-table[i].level, table[i].adr)
         getsym()
     elif sym == "NOT":
@@ -914,7 +985,7 @@ table.append(0)      # Making the first position in the symbol table empty
 sym = ' '       
 codeIndx = 0         # First line of assembly code starts at 1
 prevIndx = 0
-infile = open('Input/err.pas', 'r')   # Path to input file
+infile = open('Input/4 test 1.pas', 'r')   # Path to input file
 # Use "a" instead of "w+" if you don't want the file overwritten.
 #outfile =  open("Output/compiler_output2.txt", "a")     # Path to output file, will create if doesn't already exist
 outfile = open("Output/compiler_output.txt", "w+")
