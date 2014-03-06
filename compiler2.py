@@ -176,11 +176,25 @@ def Interpret():
             if stack[top] == instr.statLinks:
                 pos = instr.value
             top -= 1
-        # ADDING THE CTS COMMAND HERE
+        #     CTS COMMAND
         elif instr.cmd == "CTS":
             top += 1
             stack[top] = stack[top-1]
-        # END THE CTS COMMAND
+        #     Adding the LDI COMMAND here
+        elif instr.cmd == "LDI":
+            top += 1
+            stack[top] = stack[stack[Base(table[i].level) + table[i]]]
+        #     End the LDI COMMAND
+        #     Adding the STI COMMAND here
+        elif instr.cmd == "STI":
+            stack[stack[Base(table[i].level) + table[i].adr]] = stack[top]
+            top -= 1
+        #     End the STI COMMAND
+        #     Adding the LDA COMMAND here
+        elif instr.cmd == "LDA":
+            top += 1
+            stack[top] = Base(table[i].level) + table[i].adr
+        #     End the LDA COMMAND here
         if pos == 0:
             break
     print >>outfile, "\n\nEnd PL/0\n"
