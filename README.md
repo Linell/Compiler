@@ -12,4 +12,6 @@ Currently, the python compiler is set up to print the output to a file.
 I've left the code in to change it back though, so that you can
 switch it back rather easily.
 
-The C++ compiler is still in its *very* early stages of modification and currently does not support any of the nifty features of the python compiler. In fact, the C++ file is _way_ behind.
+The C++ compiler is still in its *very* early stages of modification and currently does not support any of the nifty features of the python compiler. In fact, the C++ file is _way_ behind. 
+
+
