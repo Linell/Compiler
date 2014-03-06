@@ -200,14 +200,14 @@ def Interpret():
     print >>outfile, "\n\nEnd PL/0\n"
 
 #--------------Error Messages----------------------------------- #
-def error(num, sym, tx):
+def error(num, sym='Undefined', tx=-9999):
     global errorFlag;
     errorFlag = 1
 
-    i = position(tx, id)
-    symName = table[i].name
+    # if tx != -9999:
+    #     i = position(tx, id)
+    #     symName = table[i].name
 
-    print
     if num == 1: 
         print >>outfile, "Error on line number: " + str(lineNumber) + " on " + sym + "\nUse = instead of :="
     elif num ==2: 
@@ -922,7 +922,7 @@ outfile = open("Output/compiler_output.txt", "w+")
 getsym()                # Get first symbol
 block(0, 0)             # Call block initializing with a table index of zero
 if sym != "period":     # Period expected after block is completed
-    error(9, sym, tx)
+    error(9)
 print  
 if errorFlag == 0:
     print >>outfile, "Successful compilation!\n"
