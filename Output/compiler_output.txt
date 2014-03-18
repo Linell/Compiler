@@ -1,5 +1,131 @@
 
 *************************
+Compiling Input/4 test 1.pas
+*************************
+
+
+2 INT 0 6
+3 LIT 0 300
+4 LOD 0 4
+5 OPR 0 2
+6 STI 0 3
+7 LOD 1 3
+8 LIT 0 100
+9 OPR 0 2
+10 STO 0 4
+11 LDI 0 3
+12 LDI 0 5
+13 OPR 0 8
+14 JPC 0 16
+15 JMP 0 11
+16 LIT 0 1
+17 LIT 0 1
+18 OPR 0 8
+19 JPC 0 11
+20 OPR 0 0
+
+22 INT 0 5
+23 LIT 0 1
+24 LIT 0 1
+25 OPR 0 8
+26 LIT 0 0
+27 OPR 0 8
+28 LOD 0 4
+29 LDI 0 3
+30 OPR 0 8
+31 LDI 0 3
+32 LOD 0 4
+33 OPR 0 8
+34 OPR 0 4
+35 OPR 0 2
+36 JPC 0 38
+37 JMP 0 38
+38 INT 0 1
+39 INT 0 3
+40 LDA 0 4
+41 INT 0 1
+42 INT 0 3
+43 LOD 0 3
+44 LDI 0 3
+45 LOD 0 4
+46 OPR 0 2
+47 INT 0 -5
+48 CAL 1 22
+49 INT 0 -5
+50 CAL 1 22
+51 STO 0 -1
+52 OPR 0 0
+
+53 INT 0 5
+54 OPR 0 0
+Successful compilation!
+
+
+Start PL/0
+
+
+
+End PL/0
+
+
+*************************
+Compiling Input/4 test 2.pas
+*************************
+
+
+2 INT 0 7
+3 LDI 0 4
+4 LIT 0 1
+5 OPR 0 2
+6 STI 0 4
+7 LOD 0 5
+8 LIT 0 1
+9 OPR 0 3
+10 STO 0 5
+11 LDI 0 4
+12 LDI 0 3
+13 LOD 0 5
+14 OPR 0 4
+15 LOD 0 6
+16 OPR 0 5
+17 OPR 0 2
+18 STO 0 -1
+19 OPR 0 0
+
+21 INT 0 5
+22 INT 0 1
+23 INT 0 3
+24 LDA 0 3
+25 LOD 0 4
+26 LOD 0 3
+27 LDI 0 4
+28 INT 0 -7
+29 CAL 1 2
+30 OPR 0 14
+31 OPR 0 15
+32 OPR 0 0
+
+33 INT 0 4
+34 LIT 0 5
+35 STO 0 3
+36 INT 0 3
+37 LIT 0 5
+38 LDA 0 3
+39 INT 0 -5
+40 CAL 0 21
+41 OPR 0 0
+Successful compilation!
+
+
+Start PL/0
+
+10
+
+
+End PL/0
+
+
+*************************
 Compiling Input/4 test 3.pas
 *************************
 
@@ -190,6 +316,158 @@ Start PL/0
 1604 1604 630 860 1604 630 860 800
 777
 630 860 800
+
+
+End PL/0
+
+
+*************************
+Compiling Input/Fibonacci.pas
+*************************
+
+
+2 INT 0 4
+3 LOD 0 3
+4 LIT 0 1
+5 OPR 0 8
+6 JPC 0 10
+7 LIT 0 0
+8 STO 0 -1
+9 JMP 0 33
+10 LOD 0 3
+11 LIT 0 2
+12 OPR 0 8
+13 JPC 0 17
+14 LIT 0 1
+15 STO 0 -1
+16 JMP 0 33
+17 INT 0 1
+18 INT 0 3
+19 LOD 0 3
+20 LIT 0 1
+21 OPR 0 3
+22 INT 0 -4
+23 CAL 1 2
+24 INT 0 1
+25 INT 0 3
+26 LOD 0 3
+27 LIT 0 2
+28 OPR 0 3
+29 INT 0 -4
+30 CAL 1 2
+31 OPR 0 2
+32 STO 0 -1
+33 OPR 0 0
+
+34 INT 0 4
+35 LIT 0 1
+36 STO 0 3
+37 LIT 0 19
+38 CTS 0 0
+39 LOD 0 3
+40 OPR 0 11
+41 JPC 0 53
+42 INT 0 1
+43 INT 0 3
+44 LOD 0 3
+45 INT 0 -4
+46 CAL 0 2
+47 OPR 0 14
+48 LOD 0 3
+49 LIT 0 1
+50 OPR 0 2
+51 STO 0 3
+52 JMP 0 38
+53 INT 0 -1
+54 INT 0 1
+55 INT 0 3
+56 LOD 0 3
+57 INT 0 -4
+58 CAL 0 2
+59 OPR 0 14
+60 OPR 0 15
+61 OPR 0 0
+Successful compilation!
+
+
+Start PL/0
+
+0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181
+
+
+End PL/0
+
+
+*************************
+Compiling Input/Hanoi.pas
+*************************
+
+
+2 INT 0 7
+3 LOD 0 3
+4 LIT 0 1
+5 OPR 0 8
+6 JPC 0 13
+7 LOD 0 4
+8 OPR 0 14
+9 LOD 0 5
+10 OPR 0 14
+11 OPR 0 15
+12 JMP 0 36
+13 INT 0 3
+14 LOD 0 3
+15 LIT 0 1
+16 OPR 0 3
+17 LOD 0 4
+18 LOD 0 6
+19 LOD 0 5
+20 INT 0 -7
+21 CAL 1 2
+22 LOD 0 4
+23 OPR 0 14
+24 LOD 0 5
+25 OPR 0 14
+26 OPR 0 15
+27 INT 0 3
+28 LOD 0 3
+29 LIT 0 1
+30 OPR 0 3
+31 LOD 0 6
+32 LOD 0 5
+33 LOD 0 4
+34 INT 0 -7
+35 CAL 1 2
+36 OPR 0 0
+
+37 INT 0 3
+38 INT 0 3
+39 LIT 0 4
+40 LIT 0 1
+41 LIT 0 3
+42 LIT 0 2
+43 INT 0 -7
+44 CAL 0 2
+45 OPR 0 0
+Successful compilation!
+
+
+Start PL/0
+
+1 2
+1 3
+2 3
+1 2
+3 1
+3 2
+1 2
+1 3
+2 3
+2 1
+3 1
+2 3
+1 2
+1 3
+2 3
 
 
 End PL/0

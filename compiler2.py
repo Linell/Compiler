@@ -2,11 +2,10 @@
 #    Linell Bonnette    #
 #########################
 
-# test
 import sys, string
 
 
-INFILE  = "Input/4 test 3.pas"
+INFILE  = "Input/Hanoi.pas"
 OUTFILE = "Output/compiler_output.txt"
 
 norw = 28      # Number of reserved words
@@ -582,7 +581,7 @@ def statement(tx, level):
         i = position(tx, id)
         if i==0:
             error(11, sym, tx)
-        if table[i].kind != "procedure":
+        if table[i].kind != "procedure" and table[i].kind != "function":
             error(15, sym, tx)
         # Adding stuff here
         getsym()
@@ -611,7 +610,6 @@ def statement(tx, level):
                     break
                 getsym()
             if sym != "rparen":
-                print '613'
                 error(22, sym, tx)
             gen("INT", 0, -(3+p))
             getsym()
@@ -792,7 +790,6 @@ def statement(tx, level):
             if sym != "comma":
                 break
         if sym != "rparen":
-            print '794'
             error(22, sym, tx)
         if symTest == "WRITELN":
             gen("OPR", 0, 15)
@@ -854,7 +851,6 @@ def factor(tx, level):
         getsym()
         generalExpression(tx, level) # this is now a general expression
         if sym != "rparen":
-            print '856'
             error(22, sym, tx)
         getsym()
     # Adding stuff here, yo
@@ -1002,8 +998,8 @@ codeIndx = 0         # First line of assembly code starts at 1
 prevIndx = 0
 infile = open(INFILE, 'r')   # Path to input file
 # Use "a" instead of "w+" if you don't want the file overwritten.
-#outfile =  open("Output/compiler_output2.txt", "a")     # Path to output file, will create if doesn't already exist
-outfile = open(OUTFILE, "w+")
+outfile =  open(OUTFILE, "a")     # Path to output file, will create if doesn't already exist
+#outfile = open(OUTFILE, "w+")
 
 print >> outfile, "\n*************************\nCompiling " + INFILE + "\n*************************\n" # Prints which file you're working on.
 
