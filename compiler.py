@@ -3,6 +3,7 @@
 #########################
 
 import sys, string, argparse
+from compilerUtils import tableValue, Cmd
 
 # Set up command line arguments
 parser = argparse.ArgumentParser(description='P-Code generator and compiler created for CSC408 and CSC415 at USM.')
@@ -39,24 +40,6 @@ table = []        # Symbol table
 code = []         # Code array
 stack = [0] * STACKSIZE     # Interpreter stack
 global infile, outfile, ch, sym, id, num, linlen, kk, line, errorFlag, linelen, codeIndx, prevIndx, codeIndx0, lineNumber, inFuncBody
-
-#------------- Values to put in the symbol table --------------- # 
-class tableValue():                          
-    def __init__(self, name, kind, level, adr, value):
-        self.name = name
-        self.kind = kind
-        self.adr = adr
-        self.value = value
-        self.level = level
-        self.params = [0] * 10
-
-#---------- Commands to put in the array of assembly code------- #  #
-class Cmd():                            
-    def __init__(self, line, cmd, statLinks, value):
-        self.line = line
-        self.cmd = cmd
-        self.statLinks = statLinks
-        self.value = value
 
 #------------- unction to generate assembly commands------------ #
 def gen(cmd, statLinks, value):            
