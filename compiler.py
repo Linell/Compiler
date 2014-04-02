@@ -4,6 +4,7 @@
 
 import sys, string, argparse
 from compilerUtils import tableValue, Cmd
+from interpretUtils import Interpreter
 
 # Set up command line arguments
 parser = argparse.ArgumentParser(description='P-Code generator and compiler created for CSC408 and CSC415 at USM.')
@@ -11,7 +12,7 @@ parser.add_argument('-i', '--input', help='Pascal file to be used as input.', de
 parser.add_argument('-o', '--output', help='Text file to which p-code and executed code will be sent to.', default='Output/output.txt')
 parser.add_argument('-w', '--write', help='If the write flag is set to true, the output file will not be overwritten. Default behavior is to overwrite on each run of the compiler.', default=False)
 args = vars(parser.parse_args())
-
+# Parse command line arguments
 if args['input'] != 'Input/input.pas':
     INFILE = args['input']
 else:
@@ -19,8 +20,10 @@ else:
 
 if args['output'] != 'Output/output.txt':
     OUTFILE = args['output']
+    interpreter = Interpreter(outfile=args['output'])
 else:
     OUTFILE = 'Output/output.txt'
+    interpreter = Interpreter(outfile='Output/output.txt')
 
 if args['write'] != False:
     WRITEFLAG = 'a'
@@ -63,146 +66,7 @@ def printCode():
         print >>outfile, code[i].line, code[i].cmd, code[i].statLinks, code[i].value
     prevIndx = codeIndx
 
-#-------------Function to find a new base----------------------- #
-def Base(statLinks, base):
-    b1 = base
-    while(statLinks > 0):
-        b1 = stack[b1]
-        statLinks -= 1
-    return b1
 
-#-------------P-Code Interpreter-------------------------------- #
-def Interpret():
-    print >>outfile, "\nStart PL/0\n"
-    top = 0
-    base = 1
-    pos = 0
-    stack[1] = 0
-    stack[2] = 0
-    stack[3] = 0
-    while True:
-        print '\nCompiling at position ' + str(pos)
-        instr = code[pos]
-        pos += 1
-        #       LIT COMMAND
-        if instr.cmd == "LIT":    
-            top += 1
-            stack[top] = int(instr.value)
-        #       OPR COMMAND
-        elif instr.cmd == "OPR":
-            if instr.value == 0:         #end
-                top = base - 1
-                base = stack[top+2]
-                pos = stack[top + 3]
-            elif instr.value == 1:         #unary minus
-                stack[top] = -stack[top]
-            elif instr.value == 2:         #addition
-                top -= 1
-                stack[top] = stack[top] + stack[top+1]
-            elif instr.value == 3:         #subtraction
-                top -= 1
-                stack[top] = stack[top] - stack[top+1]
-            elif instr.value == 4:         #multiplication
-                top -= 1
-                stack[top] = stack[top] * stack[top+1]
-            elif instr.value == 5:         #integer division
-                top -= 1
-                stack[top] = stack[top] / stack[top+1]
-            elif instr.value == 6:         #logical odd function
-                if stack[top] % 2 == 0:
-                    stack[top] = 1
-                else:
-                    stack[top] = 0
-            # case 7 n/a, used to debuge programs
-            elif instr.value == 8:        #test for equality if stack[top-1] = stack[top], replace pair with true, otherwise false
-                top -= 1
-                if stack[top] == stack[top+1]:
-                    stack[top] = 1
-                else:
-                    stack[top] = 0
-            elif instr.value == 9:         #test for inequality
-                top -= 1
-                if stack[top] != stack[top+1]:
-                    stack[top] = 1
-                else:
-                    stack[top] = 0
-            elif instr.value == 10:         #test for < (if stack[top-1] < stack[t])
-                top -= 1
-                if stack[top] < stack[top+1]:
-                    stack[top] = 1
-                else:
-                    stack[top] = 0
-            elif instr.value == 11:        #test for >=
-                top -= 1
-                if stack[top] >= stack[top+1]:
-                    stack[top] = 1
-                else:
-                    stack[top] = 0
-            elif instr.value == 12:        #test for >
-                top -= 1
-                if stack[top] > stack[top+1]:
-                    stack[top] = 1
-                else:
-                    stack[top] = 0
-            elif instr.value == 13:        #test for <=
-                top -= 1
-                if stack[top] <= stack[top+1]:
-                    stack[top] = 1
-                else:
-                    stack[top] = 0
-            elif instr.value == 14:        #write/print stack[top]  
-                print >>outfile, stack[top],
-                top -= 1
-            elif instr.value == 15:        #write/print a newline
-                print >>outfile
-        #      LOD COMMAND
-        elif instr.cmd == "LOD":
-            top += 1
-            stack[top] = stack[Base(instr.statLinks, base) + instr.value]
-        #    STO COMMAND
-        elif instr.cmd == "STO":
-            stack[Base(instr.statLinks, base) + instr.value] = stack[top]
-            top -= 1
-        #    CAL COMMAND
-        elif instr.cmd == "CAL": 
-            stack[top+1] = Base(instr.statLinks, base)
-            stack[top+2] = base
-            stack[top+3] = pos
-            base = top + 1
-            pos = instr.value
-        #    INT COMMAND
-        elif instr.cmd == "INT":
-            top = top + instr.value
-        #     JMP COMMAND
-        elif instr.cmd == "JMP":
-            pos = instr.value
-        #     JPC COMMAND
-        elif instr.cmd == "JPC":
-            if stack[top] == instr.statLinks:
-                pos = instr.value
-            top -= 1
-        #     CTS COMMAND
-        elif instr.cmd == "CTS":
-            top += 1
-            stack[top] = stack[top-1]
-        #     Adding the LDI COMMAND here
-        elif instr.cmd == "LDI":
-            top += 1
-            stack[top] = stack[stack[Base(instr.statLinks, base) + instr.value]]
-        #     End the LDI COMMAND
-        #     Adding the STI COMMAND here
-        elif  instr.cmd == "STI":
-            stack[stack[Base(instr.statLinks, base) + instr.value]] = stack[top]
-            top -= 1
-        #     End the STI COMMAND
-        #     Adding the LDA COMMAND here
-        elif instr.cmd == "LDA":
-            top += 1
-            stack[top] = Base(instr.statLinks, base) + instr.value
-        #     End the LDA COMMAND here
-        if pos == 0:
-            break
-    print >>outfile, "\n\nEnd PL/0\n"
 
 #--------------Error Messages----------------------------------- #
 def error(num, sym='Undefined', tx=-9999):
@@ -1011,5 +875,6 @@ if sym != "period":     # Period expected after block is completed
 print  
 if errorFlag == 0:
     print >>outfile, "Successful compilation!\n"
-    
-Interpret()
+
+interpreter.code = code
+interpreter.Interpret()
