@@ -512,7 +512,6 @@ def block(tableIndex, level):
             error(35)
         getsym()
 
-    # End addition of stuff here
     while sym == "PROCEDURE" or sym == "VAR" or sym == "CONST" or sym == "FUNCTION": 
         if sym == "CONST":
             while True:               #makeshift do while in python
@@ -581,11 +580,11 @@ def statement(tx, level):
             error(13, sym, tx)
         getsym()
         expression(tx, level)
-        if symType == "variable" or symType == "value":   # More additions here
+        if symType == "variable" or symType == "value":   
             gen("STO", level -table[i].level, table[i].adr)
         elif symType == "function":
             gen("STO", 0, -1)
-        elif symType == "reference":  # Even more additions here
+        elif symType == "reference":  
             gen("STI", level -table[i].level, table[i].adr)
         else:
             error(666, sym, tx)     # TODO: Replace with better errors
@@ -849,7 +848,7 @@ def term(tx, level):
 #-------------FACTOR--------------------------------------------------
 def factor(tx, level):
     global sym, num, id;
-    if sym == "ident":      # Added this here
+    if sym == "ident":      
         i = position(tx, id)
         if i==0:
             error(11, sym, tx)
@@ -857,7 +856,7 @@ def factor(tx, level):
             gen("LIT", 0, table[i].value)
         elif table[i].kind == "variable" or table[i].kind == "value":
             gen("LOD", level-table[i].level, table[i].adr)
-        elif table[i].kind == "reference":                            # Specifically this, yo
+        elif table[i].kind == "reference":                            
             gen("LDI", level-table[i].level, table[i].adr)
         elif table[i].kind == "procedure" or table[i].kind == "function":
             error(21, sym, tx)
@@ -871,7 +870,6 @@ def factor(tx, level):
         if sym != "rparen":
             error(22, sym, tx)
         getsym()
-    # Adding stuff here, yo
     elif sym == "CALL":
         getsym()
         i = position(tx, id)
@@ -879,7 +877,6 @@ def factor(tx, level):
             error(34, sym, tx)
         else:
             gen("INT", 0, 1)
-            # Adding things here
             getsym()
             if sym == "lparen":
                 p = 0
@@ -915,7 +912,6 @@ def factor(tx, level):
         factor(tx, level)
         gen("LIT", 0, 0)
         gen("OPR", 0, 8)
-    # Ending the added stuff, Mr. Sherlock
     else:
         error(24, sym, tx)
 
@@ -976,9 +972,12 @@ rword.append('AND')
 rword.append('OR')
 rword.append('FUNCTION')
 rword.append('NOT')
-# Additions
 rword.append('VAL')
 rword.append('REF')
+# Addition of Concurrency
+rword.append('COBEGIN')
+rword.append('COEND')
+# End addititons. 
 
 ssym = {'+' : "plus",
             '-' : "minus",
