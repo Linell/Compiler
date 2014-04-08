@@ -2,11 +2,29 @@
 #    Linell Bonnette    #
 #########################
 
-import sys, string
+import sys, string, argparse
 
+# Set up command line arguments
+parser = argparse.ArgumentParser(description='P-Code generator and compiler created for CSC408 and CSC415 at USM.')
+parser.add_argument('-i', '--input', help='Pascal file to be used as input.', default='Input/input.pas')
+parser.add_argument('-o', '--output', help='Text file to which p-code and executed code will be sent to.', default='Output/output.txt')
+parser.add_argument('-w', '--write', help='If the write flag is set to true, the output file will not be overwritten. Default behavior is to overwrite on each run of the compiler.', default=False)
+args = vars(parser.parse_args())
+# Parse command line arguments
+if args['input'] != 'Input/input.pas':
+    INFILE = args['input']
+else:
+    INFILE = 'Input/input.pas'
 
-INFILE  = "Input/Hanoi.pas"
-OUTFILE = "Output/compiler_output.txt"
+if args['output'] != 'Output/output.txt':
+    OUTFILE = args['output']
+else:
+    OUTFILE = 'Output/output.txt'
+
+if args['write'] != False:
+    WRITEFLAG = 'a'
+else:
+    WRITEFLAG = 'w+'
 
 norw = 28      # Number of reserved words
 txmax = 100    # Length of identifier table
@@ -998,8 +1016,8 @@ codeIndx = 0         # First line of assembly code starts at 1
 prevIndx = 0
 infile = open(INFILE, 'r')   # Path to input file
 # Use "a" instead of "w+" if you don't want the file overwritten.
-outfile =  open(OUTFILE, "a")     # Path to output file, will create if doesn't already exist
-#outfile = open(OUTFILE, "w+")
+#outfile =  open(OUTFILE, "a")     # Path to output file, will create if doesn't already exist
+outfile = open(OUTFILE, WRITEFLAG)
 
 print >> outfile, "\n*************************\nCompiling " + INFILE + "\n*************************\n" # Prints which file you're working on.
 
