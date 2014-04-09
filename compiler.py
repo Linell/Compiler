@@ -103,6 +103,7 @@ def Interpret():
     globalStack[stackIndex][2] = 0
     globalStack[stackIndex][3] = 0
     while True:
+        #print 'Compiling at position ' + str(posStack[stackIndex]) + ' on stack ' + str(stackIndex)
         if concurrent: # If we're running concurrently, pick a random stack to run
             stackIndex = randrange(len(globalStack)) # concurrent
         else:
