@@ -26,7 +26,7 @@ if args['write'] != False:
 else:
     WRITEFLAG = 'w+'
 
-norw = 28      # Number of reserved words
+norw = 30      # Number of reserved words
 txmax = 100    # Length of identifier table
 nmax = 14      # Max number of digits in number
 al = 10        # Length of identifiers
@@ -566,7 +566,7 @@ def block(tableIndex, level):
 #--------------STATEMENT----------------------------------------
 def statement(tx, level):
     global sym, id, num, inFuncBody;
-    if sym == "ident":      # Adding val and ref stuff
+    if sym == "ident":      
         i = position(tx, id)
         symType = table[i].kind
         if i==0:
@@ -600,7 +600,6 @@ def statement(tx, level):
             error(11, sym, tx)
         if table[i].kind != "procedure" and table[i].kind != "function":
             error(15, sym, tx)
-        # Adding stuff here
         getsym()
         if sym == "lparen":
             p = 0
@@ -631,7 +630,6 @@ def statement(tx, level):
             gen("INT", 0, -(3+p))
             getsym()
         gen("CAL", level - table[i].level, table[i].adr)
-
     ##
     #  IF/THEN/ELSE
     ##
@@ -811,6 +809,67 @@ def statement(tx, level):
         if symTest == "WRITELN":
             gen("OPR", 0, 15)
         getsym()
+    ##
+    #  COBEGIN and COEND
+    ##
+    elif sym == "COBEGIN":
+        getsym()
+        # Now that we're inside of a cobegin, we can only call things. We're going
+        # to cheap out and not do ANY error testing. Screw it.
+        stuff = 0
+
+        while True:
+            # Increment the stack counter here ONLY IF stack counter > 0 and < 4
+            stuff = stuff + 1
+            print 'This sym is ' + sym + ' and stuff is ' + str(stuff)
+            if sym == "CALL":
+                getsym()
+                if sym != "ident":
+                    error(14, sym, tx)
+                i = position(tx, id)
+                if i==0:
+                    error(11, sym, tx)
+                if table[i].kind != "procedure" and table[i].kind != "function":
+                    error(15, sym, tx)
+                getsym()
+                if sym == "lparen":
+                    p = 0
+                    gen("INT", 0, 3)
+                    getsym()
+                    while True:
+                        if table[i].params[p] == True: # It is a reference variable
+                            if sym != "ident":
+                                error(666, sym, tx)
+                            j = position(tx, id)
+                            if j == 0:
+                                error(15, sym, tx)
+                            if table[j].kind == "value" or table[j].kind == "variable":
+                                gen("LDA", level-table[j].level, table[j].adr)
+                            elif table[j].kind == "reference":
+                                gen("LOD", level-table[j].level, table[j].adr)
+                            else:
+                                error(666, sym, tx)
+                            getsym()
+                        else:
+                            expression(tx, level)
+                        p += 1
+                        if sym != "comma":
+                            break
+                        getsym()
+                    if sym != "rparen":
+                        error(22, sym, tx)
+                    gen("INT", 0, -(3+p))
+                    getsym()
+                gen("CAL", level - table[i].level, table[i].adr)
+            elif sym == 'COEND':
+                break
+            if sym != "semicolon":
+                error(666, sym, tx)
+            getsym()
+        print 'stuff'
+        getsym()
+            
+
 
 #--------------EXPRESSION--------------------------------------
 def expression(tx, level):
