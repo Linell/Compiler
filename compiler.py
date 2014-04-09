@@ -2,7 +2,7 @@
 #    Linell Bonnette    #
 #########################
 
-import sys, string, argparse
+import sys, string, argparse, copy
 from random import randrange
 
 # Set up command line arguments
@@ -96,22 +96,24 @@ def Interpret():
     print >>outfile, "\nStart PL/0\n"
     concurrent = False
     stackIndex = 0 # We want to use the 0-th stack from the very beginning
-    topStack   = [0] * 4 
-    baseStack  = [1] * 4
-    posStack   = [0] * 4
+    topStack   = [0] * 5  # Setting this to five means we have four concurrent
+    baseStack  = [1] * 5  # stacks (plus the main one, cause yah trick)
+    posStack   = [0] * 5
     globalStack[stackIndex][1] = 0
     globalStack[stackIndex][2] = 0
     globalStack[stackIndex][3] = 0
     while True:
-        if concurrent:
-            stackIndex = randrange(len(globalStack))
+        if concurrent: # If we're running concurrently, pick a random stack to run
+            stackIndex = randrange(len(globalStack)) # concurrent
+        else:
+            stackIndex = 0 # We still need to do this in case we kill a stack.
         instr = code[posStack[stackIndex]]
         posStack[stackIndex] += 1
-        #       LIT COMMAND
+        #    LIT COMMAND
         if instr.cmd == "LIT":    
             topStack[stackIndex] += 1
             globalStack[stackIndex][topStack[stackIndex]] = int(instr.value)
-        #       OPR COMMAND
+        #    OPR COMMAND
         elif instr.cmd == "OPR":
             if instr.value == 0:         #end
                 topStack[stackIndex] = baseStack[stackIndex] - 1
@@ -178,7 +180,7 @@ def Interpret():
                 topStack[stackIndex] -= 1
             elif instr.value == 15:        #write/print a newline
                 print >>outfile
-        #      LOD COMMAND
+        #    LOD COMMAND
         elif instr.cmd == "LOD":
             topStack[stackIndex] += 1
             globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex]) + instr.value]
@@ -188,6 +190,18 @@ def Interpret():
             topStack[stackIndex] -= 1
         #    CAL COMMAND
         elif instr.cmd == "CAL": 
+            if concurrent:
+                # This is confusing as all get out, so here's a metric ton of comments to explain what I think
+                # I am doing.
+                # 1 - Create a copy of the main stack, since we can *only* do concurrent stuff from there.
+                # 2 - Append the copy to the global stack.
+                # 3 - We'll also need the top, base, and position for this. I *think* that as long as we do this
+                #     every time, we can just append those to their respective stacks as well.
+                newStack = copy.deepcopy(globalStack[0]) # Make a new stack based off of the main stack
+                globalStack.append(newStack) # Append the new stack as the last element of the global stack.
+                topStack.append(topStack[0])
+                baseStack.append(baseStack[0])
+                posStack.append(posStack[0])
             globalStack[stackIndex][topStack[stackIndex]+1] = Base(instr.statLinks, baseStack[stackIndex])
             globalStack[stackIndex][topStack[stackIndex]+2] = baseStack[stackIndex]
             globalStack[stackIndex][topStack[stackIndex]+3] = posStack[stackIndex]
@@ -221,11 +235,8 @@ def Interpret():
             topStack[stackIndex] += 1
             globalStack[stackIndex][topStack[stackIndex]] = Base(instr.statLinks, baseStack[stackIndex]) + instr.value
         elif instr.cmd == "COB":
-            # Race down to the COE command, adding each item into the 
-            # 'concurrent code' array.
             concurrent = True
         elif instr.cmd == "COE":
-            # Okay, so we've got everything we need in the array.
             concurrent = False
         if posStack[stackIndex] == 0:
             break
@@ -822,66 +833,15 @@ def statement(tx, level):
     ##
     #  COBEGIN and COEND
     ##
-    # elif sym == "COBEGIN":
-    #     getsym()
-    #     # Now that we're inside of a cobegin, we can only call things. We're going
-    #     # to cheap out and not do ANY error testing. Screw it.
-    #     while True:
-    #         # Increment the stack counter here ONLY IF stack counter > 0 and < 4
-    #         if sym == "CALL":
-    #             getsym()
-    #             if sym != "ident":
-    #                 error(14, sym, tx)
-    #             i = position(tx, id)
-    #             if i==0:
-    #                 error(11, sym, tx)
-    #             if table[i].kind != "procedure" and table[i].kind != "function":
-    #                 error(15, sym, tx)
-    #             getsym()
-    #             if sym == "lparen":
-    #                 p = 0
-    #                 gen("INT", 0, 3)
-    #                 getsym()
-    #                 while True:
-    #                     if table[i].params[p] == True: # It is a reference variable
-    #                         if sym != "ident":
-    #                             error(666, sym, tx)
-    #                         j = position(tx, id)
-    #                         if j == 0:
-    #                             error(15, sym, tx)
-    #                         if table[j].kind == "value" or table[j].kind == "variable":
-    #                             gen("LDA", level-table[j].level, table[j].adr)
-    #                         elif table[j].kind == "reference":
-    #                             gen("LOD", level-table[j].level, table[j].adr)
-    #                         else:
-    #                             error(666, sym, tx)
-    #                         getsym()
-    #                     else:
-    #                         expression(tx, level)
-    #                     p += 1
-    #                     if sym != "comma":
-    #                         break
-    #                     getsym()
-    #                 if sym != "rparen":
-    #                     error(22, sym, tx)
-    #                 gen("INT", 0, -(3+p))
-    #                 getsym()
-    #             gen("CAL", level - table[i].level, table[i].adr)
-    #         elif sym == 'COEND':
-    #             break
-    #         if sym != "semicolon":
-    #             error(666, sym, tx)
-    #         getsym()
-    #     getsym()
     elif sym == "COBEGIN":
-        # Generate the command to tell us to race down to the COEND
         gen("COB", 0, 0)
+        while True:
+            getsym()
+            statement(tx, level)
+            if sym == "COEND":
+                gen("COE", 0, 0)
+                break
         getsym()
-        statement(tx, level)
-    elif sym == "COEND":
-        gen("COE", 0, 0)
-        getsym()
-        statement(tx, level)
 
 #--------------EXPRESSION--------------------------------------
 def expression(tx, level):
