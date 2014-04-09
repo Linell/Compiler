@@ -3,6 +3,7 @@
 #########################
 
 import sys, string, argparse
+from random import randrange
 
 # Set up command line arguments
 parser = argparse.ArgumentParser(description='P-Code generator and compiler created for CSC408 and CSC415 at USM.')
@@ -35,9 +36,11 @@ STACKSIZE = 500
 a = []
 chars = []
 rword = []
-table = []        # Symbol table
-code = []         # Code array
+table = []     # Symbol table
+code = []      # Code array
 stack = [0] * STACKSIZE     # Interpreter stack
+globalStack = []            # This is a 'global stack' that is used to hold other stacks during concurrency
+globalStack.append(stack)   # Put stack[0] onto the global stack
 global infile, outfile, ch, sym, id, num, linlen, kk, line, errorFlag, linelen, codeIndx, prevIndx, codeIndx0, lineNumber, inFuncBody
 
 #------------- Values to put in the symbol table --------------- # 
@@ -91,133 +94,140 @@ def Base(statLinks, base):
 #-------------P-Code Interpreter-------------------------------- #
 def Interpret():
     print >>outfile, "\nStart PL/0\n"
-    top = 0
-    base = 1
-    pos = 0
-    stack[1] = 0
-    stack[2] = 0
-    stack[3] = 0
+    concurrent = False
+    stackIndex = 0 # We want to use the 0-th stack from the very beginning
+    topStack   = [0] * 4 
+    baseStack  = [1] * 4
+    posStack   = [0] * 4
+    globalStack[stackIndex][1] = 0
+    globalStack[stackIndex][2] = 0
+    globalStack[stackIndex][3] = 0
     while True:
-        print '\nCompiling at position ' + str(pos)
-        instr = code[pos]
-        pos += 1
+        if concurrent:
+            stackIndex = randrange(len(globalStack))
+        instr = code[posStack[stackIndex]]
+        posStack[stackIndex] += 1
         #       LIT COMMAND
         if instr.cmd == "LIT":    
-            top += 1
-            stack[top] = int(instr.value)
+            topStack[stackIndex] += 1
+            globalStack[stackIndex][topStack[stackIndex]] = int(instr.value)
         #       OPR COMMAND
         elif instr.cmd == "OPR":
             if instr.value == 0:         #end
-                top = base - 1
-                base = stack[top+2]
-                pos = stack[top + 3]
+                topStack[stackIndex] = baseStack[stackIndex] - 1
+                baseStack[stackIndex] = globalStack[stackIndex][topStack[stackIndex]+2]
+                posStack[stackIndex] = globalStack[stackIndex][topStack[stackIndex] + 3]
             elif instr.value == 1:         #unary minus
-                stack[top] = -stack[top]
+                globalStack[stackIndex][topStack[stackIndex]] = -globalStack[stackIndex][topStack[stackIndex]]
             elif instr.value == 2:         #addition
-                top -= 1
-                stack[top] = stack[top] + stack[top+1]
+                topStack[stackIndex] -= 1
+                globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][topStack[stackIndex]] + globalStack[stackIndex][topStack[stackIndex]+1]
             elif instr.value == 3:         #subtraction
-                top -= 1
-                stack[top] = stack[top] - stack[top+1]
+                topStack[stackIndex] -= 1
+                globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][topStack[stackIndex]] - globalStack[stackIndex][topStack[stackIndex]+1]
             elif instr.value == 4:         #multiplication
-                top -= 1
-                stack[top] = stack[top] * stack[top+1]
+                topStack[stackIndex] -= 1
+                globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][topStack[stackIndex]] * globalStack[stackIndex][topStack[stackIndex]+1]
             elif instr.value == 5:         #integer division
-                top -= 1
-                stack[top] = stack[top] / stack[top+1]
+                topStack[stackIndex] -= 1
+                globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][topStack[stackIndex]] / globalStack[stackIndex][topStack[stackIndex]+1]
             elif instr.value == 6:         #logical odd function
-                if stack[top] % 2 == 0:
-                    stack[top] = 1
+                if globalStack[stackIndex][topStack[stackIndex]] % 2 == 0:
+                    globalStack[stackIndex][topStack[stackIndex]] = 1
                 else:
-                    stack[top] = 0
+                    globalStack[stackIndex][topStack[stackIndex]] = 0
             # case 7 n/a, used to debuge programs
-            elif instr.value == 8:        #test for equality if stack[top-1] = stack[top], replace pair with true, otherwise false
-                top -= 1
-                if stack[top] == stack[top+1]:
-                    stack[top] = 1
+            elif instr.value == 8:        #test for equality if globalStack[stackIndex][topStack[stackIndex]-1] = globalStack[stackIndex][topStack[stackIndex]], replace pair with true, otherwise false
+                topStack[stackIndex] -= 1
+                if globalStack[stackIndex][topStack[stackIndex]] == globalStack[stackIndex][topStack[stackIndex]+1]:
+                    globalStack[stackIndex][topStack[stackIndex]] = 1
                 else:
-                    stack[top] = 0
+                    globalStack[stackIndex][topStack[stackIndex]] = 0
             elif instr.value == 9:         #test for inequality
-                top -= 1
-                if stack[top] != stack[top+1]:
-                    stack[top] = 1
+                topStack[stackIndex] -= 1
+                if globalStack[stackIndex][topStack[stackIndex]] != globalStack[stackIndex][topStack[stackIndex]+1]:
+                    globalStack[stackIndex][topStack[stackIndex]] = 1
                 else:
-                    stack[top] = 0
-            elif instr.value == 10:         #test for < (if stack[top-1] < stack[t])
-                top -= 1
-                if stack[top] < stack[top+1]:
-                    stack[top] = 1
+                    globalStack[stackIndex][topStack[stackIndex]] = 0
+            elif instr.value == 10:         #test for < (if globalStack[stackIndex][topStack[stackIndex]-1] < globalStack[stackIndex][t])
+                topStack[stackIndex] -= 1
+                if globalStack[stackIndex][topStack[stackIndex]] < globalStack[stackIndex][topStack[stackIndex]+1]:
+                    globalStack[stackIndex][topStack[stackIndex]] = 1
                 else:
-                    stack[top] = 0
+                    globalStack[stackIndex][topStack[stackIndex]] = 0
             elif instr.value == 11:        #test for >=
-                top -= 1
-                if stack[top] >= stack[top+1]:
-                    stack[top] = 1
+                topStack[stackIndex] -= 1
+                if globalStack[stackIndex][topStack[stackIndex]] >= globalStack[stackIndex][topStack[stackIndex]+1]:
+                    globalStack[stackIndex][topStack[stackIndex]] = 1
                 else:
-                    stack[top] = 0
+                    globalStack[stackIndex][topStack[stackIndex]] = 0
             elif instr.value == 12:        #test for >
-                top -= 1
-                if stack[top] > stack[top+1]:
-                    stack[top] = 1
+                topStack[stackIndex] -= 1
+                if globalStack[stackIndex][topStack[stackIndex]] > globalStack[stackIndex][topStack[stackIndex]+1]:
+                    globalStack[stackIndex][topStack[stackIndex]] = 1
                 else:
-                    stack[top] = 0
+                    globalStack[stackIndex][topStack[stackIndex]] = 0
             elif instr.value == 13:        #test for <=
-                top -= 1
-                if stack[top] <= stack[top+1]:
-                    stack[top] = 1
+                topStack[stackIndex] -= 1
+                if globalStack[stackIndex][topStack[stackIndex]] <= globalStack[stackIndex][topStack[stackIndex]+1]:
+                    globalStack[stackIndex][topStack[stackIndex]] = 1
                 else:
-                    stack[top] = 0
-            elif instr.value == 14:        #write/print stack[top]  
-                print >>outfile, stack[top],
-                top -= 1
+                    globalStack[stackIndex][topStack[stackIndex]] = 0
+            elif instr.value == 14:        #write/print globalStack[stackIndex][topStack[stackIndex]]  
+                print >>outfile, globalStack[stackIndex][topStack[stackIndex]],
+                topStack[stackIndex] -= 1
             elif instr.value == 15:        #write/print a newline
                 print >>outfile
         #      LOD COMMAND
         elif instr.cmd == "LOD":
-            top += 1
-            stack[top] = stack[Base(instr.statLinks, base) + instr.value]
+            topStack[stackIndex] += 1
+            globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex]) + instr.value]
         #    STO COMMAND
         elif instr.cmd == "STO":
-            stack[Base(instr.statLinks, base) + instr.value] = stack[top]
-            top -= 1
+            globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex]) + instr.value] = globalStack[stackIndex][topStack[stackIndex]]
+            topStack[stackIndex] -= 1
         #    CAL COMMAND
         elif instr.cmd == "CAL": 
-            stack[top+1] = Base(instr.statLinks, base)
-            stack[top+2] = base
-            stack[top+3] = pos
-            base = top + 1
-            pos = instr.value
+            globalStack[stackIndex][topStack[stackIndex]+1] = Base(instr.statLinks, baseStack[stackIndex])
+            globalStack[stackIndex][topStack[stackIndex]+2] = baseStack[stackIndex]
+            globalStack[stackIndex][topStack[stackIndex]+3] = posStack[stackIndex]
+            baseStack[stackIndex] = topStack[stackIndex] + 1
+            posStack[stackIndex] = instr.value
         #    INT COMMAND
         elif instr.cmd == "INT":
-            top = top + instr.value
+            topStack[stackIndex] = topStack[stackIndex] + instr.value
         #     JMP COMMAND
         elif instr.cmd == "JMP":
-            pos = instr.value
+            posStack[stackIndex] = instr.value
         #     JPC COMMAND
         elif instr.cmd == "JPC":
-            if stack[top] == instr.statLinks:
-                pos = instr.value
-            top -= 1
+            if globalStack[stackIndex][topStack[stackIndex]] == instr.statLinks:
+                posStack[stackIndex] = instr.value
+            topStack[stackIndex] -= 1
         #     CTS COMMAND
         elif instr.cmd == "CTS":
-            top += 1
-            stack[top] = stack[top-1]
-        #     Adding the LDI COMMAND here
+            topStack[stackIndex] += 1
+            globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][topStack[stackIndex]-1]
+        #     LDI COMMAND
         elif instr.cmd == "LDI":
-            top += 1
-            stack[top] = stack[stack[Base(instr.statLinks, base) + instr.value]]
-        #     End the LDI COMMAND
-        #     Adding the STI COMMAND here
+            topStack[stackIndex] += 1
+            globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex]) + instr.value]]
+        #     STI COMMAND
         elif  instr.cmd == "STI":
-            stack[stack[Base(instr.statLinks, base) + instr.value]] = stack[top]
-            top -= 1
-        #     End the STI COMMAND
-        #     Adding the LDA COMMAND here
+            globalStack[stackIndex][globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex]) + instr.value]] = globalStack[stackIndex][topStack[stackIndex]]
+            topStack[stackIndex] -= 1
+        #     LDA COMMAND
         elif instr.cmd == "LDA":
-            top += 1
-            stack[top] = Base(instr.statLinks, base) + instr.value
-        #     End the LDA COMMAND here
-        if pos == 0:
+            topStack[stackIndex] += 1
+            globalStack[stackIndex][topStack[stackIndex]] = Base(instr.statLinks, baseStack[stackIndex]) + instr.value
+        elif instr.cmd == "COB":
+            # Race down to the COE command, adding each item into the 
+            # 'concurrent code' array.
+            concurrent = True
+        elif instr.cmd == "COE":
+            # Okay, so we've got everything we need in the array.
+            concurrent = False
+        if posStack[stackIndex] == 0:
             break
     print >>outfile, "\n\nEnd PL/0\n"
 
@@ -812,64 +822,66 @@ def statement(tx, level):
     ##
     #  COBEGIN and COEND
     ##
+    # elif sym == "COBEGIN":
+    #     getsym()
+    #     # Now that we're inside of a cobegin, we can only call things. We're going
+    #     # to cheap out and not do ANY error testing. Screw it.
+    #     while True:
+    #         # Increment the stack counter here ONLY IF stack counter > 0 and < 4
+    #         if sym == "CALL":
+    #             getsym()
+    #             if sym != "ident":
+    #                 error(14, sym, tx)
+    #             i = position(tx, id)
+    #             if i==0:
+    #                 error(11, sym, tx)
+    #             if table[i].kind != "procedure" and table[i].kind != "function":
+    #                 error(15, sym, tx)
+    #             getsym()
+    #             if sym == "lparen":
+    #                 p = 0
+    #                 gen("INT", 0, 3)
+    #                 getsym()
+    #                 while True:
+    #                     if table[i].params[p] == True: # It is a reference variable
+    #                         if sym != "ident":
+    #                             error(666, sym, tx)
+    #                         j = position(tx, id)
+    #                         if j == 0:
+    #                             error(15, sym, tx)
+    #                         if table[j].kind == "value" or table[j].kind == "variable":
+    #                             gen("LDA", level-table[j].level, table[j].adr)
+    #                         elif table[j].kind == "reference":
+    #                             gen("LOD", level-table[j].level, table[j].adr)
+    #                         else:
+    #                             error(666, sym, tx)
+    #                         getsym()
+    #                     else:
+    #                         expression(tx, level)
+    #                     p += 1
+    #                     if sym != "comma":
+    #                         break
+    #                     getsym()
+    #                 if sym != "rparen":
+    #                     error(22, sym, tx)
+    #                 gen("INT", 0, -(3+p))
+    #                 getsym()
+    #             gen("CAL", level - table[i].level, table[i].adr)
+    #         elif sym == 'COEND':
+    #             break
+    #         if sym != "semicolon":
+    #             error(666, sym, tx)
+    #         getsym()
+    #     getsym()
     elif sym == "COBEGIN":
+        # Generate the command to tell us to race down to the COEND
+        gen("COB", 0, 0)
         getsym()
-        # Now that we're inside of a cobegin, we can only call things. We're going
-        # to cheap out and not do ANY error testing. Screw it.
-        stuff = 0
-
-        while True:
-            # Increment the stack counter here ONLY IF stack counter > 0 and < 4
-            stuff = stuff + 1
-            print 'This sym is ' + sym + ' and stuff is ' + str(stuff)
-            if sym == "CALL":
-                getsym()
-                if sym != "ident":
-                    error(14, sym, tx)
-                i = position(tx, id)
-                if i==0:
-                    error(11, sym, tx)
-                if table[i].kind != "procedure" and table[i].kind != "function":
-                    error(15, sym, tx)
-                getsym()
-                if sym == "lparen":
-                    p = 0
-                    gen("INT", 0, 3)
-                    getsym()
-                    while True:
-                        if table[i].params[p] == True: # It is a reference variable
-                            if sym != "ident":
-                                error(666, sym, tx)
-                            j = position(tx, id)
-                            if j == 0:
-                                error(15, sym, tx)
-                            if table[j].kind == "value" or table[j].kind == "variable":
-                                gen("LDA", level-table[j].level, table[j].adr)
-                            elif table[j].kind == "reference":
-                                gen("LOD", level-table[j].level, table[j].adr)
-                            else:
-                                error(666, sym, tx)
-                            getsym()
-                        else:
-                            expression(tx, level)
-                        p += 1
-                        if sym != "comma":
-                            break
-                        getsym()
-                    if sym != "rparen":
-                        error(22, sym, tx)
-                    gen("INT", 0, -(3+p))
-                    getsym()
-                gen("CAL", level - table[i].level, table[i].adr)
-            elif sym == 'COEND':
-                break
-            if sym != "semicolon":
-                error(666, sym, tx)
-            getsym()
-        print 'stuff'
+        statement(tx, level)
+    elif sym == "COEND":
+        gen("COE", 0, 0)
         getsym()
-            
-
+        statement(tx, level)
 
 #--------------EXPRESSION--------------------------------------
 def expression(tx, level):
