@@ -2,8 +2,7 @@
 #    Linell Bonnette    #
 #########################
 
-import sys, string, argparse, copy
-from random import randrange
+import sys, string, argparse, copy, random
 
 # Set up command line arguments
 parser = argparse.ArgumentParser(description='P-Code generator and compiler created for CSC408 and CSC415 at USM.')
@@ -84,28 +83,32 @@ def printCode():
     prevIndx = codeIndx
 
 #-------------Function to find a new base----------------------- #
-def Base(statLinks, base):
+def Base(statLinks, base, stackIndex):
     b1 = base
     while(statLinks > 0):
-        b1 = stack[b1]
+        b1 = globalStack[stackIndex][b1]
         statLinks -= 1
     return b1
 
 #-------------P-Code Interpreter-------------------------------- #
 def Interpret():
     print >>outfile, "\nStart PL/0\n"
+    topStack = []
+    baseStack = []
+    posStack = []
+    makeConcurrent = False
     concurrent = False
     stackIndex = 0 # We want to use the 0-th stack from the very beginning
-    topStack   = [0] * 5  # Setting this to five means we have four concurrent
-    baseStack  = [1] * 5  # stacks (plus the main one, cause yah trick)
-    posStack   = [0] * 5
+    topStack.append(0)   # Setting this to five means we have four concurrent
+    baseStack.append(1)   # stacks (plus the main one, cause yah trick)
+    posStack.append(0)
     globalStack[stackIndex][1] = 0
     globalStack[stackIndex][2] = 0
     globalStack[stackIndex][3] = 0
     while True:
         #print 'Compiling at position ' + str(posStack[stackIndex]) + ' on stack ' + str(stackIndex)
         if concurrent: # If we're running concurrently, pick a random stack to run
-            stackIndex = randrange(len(globalStack)) # concurrent
+            stackIndex = random.randrange(0, len(globalStack))# concurrent
         else:
             stackIndex = 0 # We still need to do this in case we kill a stack.
         instr = code[posStack[stackIndex]]
@@ -184,14 +187,14 @@ def Interpret():
         #    LOD COMMAND
         elif instr.cmd == "LOD":
             topStack[stackIndex] += 1
-            globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex]) + instr.value]
+            globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex], stackIndex) + instr.value]
         #    STO COMMAND
         elif instr.cmd == "STO":
-            globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex]) + instr.value] = globalStack[stackIndex][topStack[stackIndex]]
+            globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex], stackIndex) + instr.value] = globalStack[stackIndex][topStack[stackIndex]]
             topStack[stackIndex] -= 1
         #    CAL COMMAND
         elif instr.cmd == "CAL": 
-            if concurrent:
+            if makeConcurrent:
                 # This is confusing as all get out, so here's a metric ton of comments to explain what I think
                 # I am doing.
                 # 1 - Create a copy of the main stack, since we can *only* do concurrent stuff from there.
@@ -203,7 +206,9 @@ def Interpret():
                 topStack.append(topStack[0])
                 baseStack.append(baseStack[0])
                 posStack.append(posStack[0])
-            globalStack[stackIndex][topStack[stackIndex]+1] = Base(instr.statLinks, baseStack[stackIndex])
+                concurrent = True
+                stackIndex = len(globalStack) - 1 # Switch to the new stack
+            globalStack[stackIndex][topStack[stackIndex]+1] = Base(instr.statLinks, baseStack[stackIndex], stackIndex)
             globalStack[stackIndex][topStack[stackIndex]+2] = baseStack[stackIndex]
             globalStack[stackIndex][topStack[stackIndex]+3] = posStack[stackIndex]
             baseStack[stackIndex] = topStack[stackIndex] + 1
@@ -226,19 +231,39 @@ def Interpret():
         #     LDI COMMAND
         elif instr.cmd == "LDI":
             topStack[stackIndex] += 1
-            globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex]) + instr.value]]
+            globalStack[stackIndex][topStack[stackIndex]] = globalStack[stackIndex][globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex], stackIndex) + instr.value]]
         #     STI COMMAND
         elif  instr.cmd == "STI":
-            globalStack[stackIndex][globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex]) + instr.value]] = globalStack[stackIndex][topStack[stackIndex]]
+            globalStack[stackIndex][globalStack[stackIndex][Base(instr.statLinks, baseStack[stackIndex], stackIndex) + instr.value]] = globalStack[stackIndex][topStack[stackIndex]]
             topStack[stackIndex] -= 1
         #     LDA COMMAND
         elif instr.cmd == "LDA":
             topStack[stackIndex] += 1
-            globalStack[stackIndex][topStack[stackIndex]] = Base(instr.statLinks, baseStack[stackIndex]) + instr.value
+            globalStack[stackIndex][topStack[stackIndex]] = Base(instr.statLinks, baseStack[stackIndex], stackIndex) + instr.value
         elif instr.cmd == "COB":
-            concurrent = True
+            makeConcurrent = True
         elif instr.cmd == "COE":
-            concurrent = False
+            if stackIndex > 0: # If we aren't in the main stack
+                print '********** DELETING A STACK **********'
+                del globalStack[stackIndex]  # delete ALL the things
+                del topStack[stackIndex]
+                del posStack[stackIndex]
+                del baseStack[stackIndex]
+                if len(globalStack) == 1:
+                    concurrent = False
+                    stackIndex = 0
+            else:
+                makeConcurrent = False
+                if concurrent == True:
+                    print '*** WAITING ON CONCURRENCY *** '
+                    posStack[stackIndex] -= 1
+        elif instr.cmd == "CPJ":
+            topStack[stackIndex] += 1
+            if stackIndex > 0:
+                globalStack[stackIndex][topStack[stackIndex]] = 0
+            else:
+                globalStack[stackIndex][topStack[stackIndex]] = 1
+
         if posStack[stackIndex] == 0:
             break
     print >>outfile, "\n\nEnd PL/0\n"
@@ -836,12 +861,20 @@ def statement(tx, level):
     ##
     elif sym == "COBEGIN":
         gen("COB", 0, 0)
+        cxArray = []
+        getsym()
         while True:
-            getsym()
-            statement(tx, level)
             if sym == "COEND":
+                for cx in cxArray:
+                    fixJmp(cx, codeIndx)
                 gen("COE", 0, 0)
                 break
+            else:
+                statement(tx, level)
+                gen("CPJ", 0, 0)
+                cxArray.append(codeIndx)
+                gen("JPC", 0, 0)
+            getsym()
         getsym()
 
 #--------------EXPRESSION--------------------------------------
