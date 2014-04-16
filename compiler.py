@@ -98,9 +98,9 @@ def Interpret():
     posStack = []
     makeConcurrent = False
     concurrent = False
-    stackIndex = 0 # We want to use the 0-th stack from the very beginning
+    stackIndex = 0       # We want to use the 0-th stack from the very beginning
     topStack.append(0)   # Setting this to five means we have four concurrent
-    baseStack.append(1)   # stacks (plus the main one, cause yah trick)
+    baseStack.append(1)  #  stacks (plus the main one, cause yah trick)
     posStack.append(0)
     globalStack[stackIndex][1] = 0
     globalStack[stackIndex][2] = 0
@@ -251,7 +251,7 @@ def Interpret():
                 del baseStack[stackIndex]
                 if len(globalStack) == 1:
                     concurrent = False
-                    stackIndex = 0
+                stackIndex = 0
             else:
                 makeConcurrent = False
                 if concurrent == True:
@@ -263,7 +263,7 @@ def Interpret():
                 globalStack[stackIndex][topStack[stackIndex]] = 0
             else:
                 globalStack[stackIndex][topStack[stackIndex]] = 1
-
+        print 'thing is ' + str(posStack[stackIndex])
         if posStack[stackIndex] == 0:
             break
     print >>outfile, "\n\nEnd PL/0\n"
@@ -876,6 +876,10 @@ def statement(tx, level):
                 gen("JPC", 0, 0)
             getsym()
         getsym()
+    ##
+    #
+    ##
+    
 
 #--------------EXPRESSION--------------------------------------
 def expression(tx, level):
@@ -1039,10 +1043,11 @@ rword.append('FUNCTION')
 rword.append('NOT')
 rword.append('VAL')
 rword.append('REF')
-# Addition of Concurrency
 rword.append('COBEGIN')
 rword.append('COEND')
-# End addititons. 
+# Semaphore
+rword.append('SEMAPHORE')
+# End semaphore
 
 ssym = {'+' : "plus",
             '-' : "minus",

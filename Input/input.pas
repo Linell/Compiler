@@ -1,6 +1,7 @@
 VAR A;
 VAR B;
-
+VAR C;
+VAR P;
 VAR Q;
 VAR K;
 VAR R;
@@ -14,16 +15,30 @@ PROCEDURE PRINTA;
 PROCEDURE PRINTB;
   BEGIN
     FOR B := 1 TO 5 DO
-        WRITE(K);
+        WRITELN(K);
+  END;
+
+PROCEDURE PRINTC;
+  BEGIN
+    FOR C := 1 TO 5 DO
+        WRITE(P);
   END;
 
 BEGIN
 	Q := 666;
 	K := 999;
+  P := 111;
 
 	COBEGIN
    	CALL PRINTA;
    	CALL PRINTB;
+    P := 222;
+    Q := 888;
+    K := 777;
+    CALL PRINTA;
+    CALL PRINTB;
+    CALL PRINTC;
+
   COEND;
 
   R := 4;
