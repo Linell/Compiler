@@ -26,7 +26,7 @@ if args['write'] != False:
 else:
     WRITEFLAG = 'w+'
 
-norw = 30      # Number of reserved words
+norw = 32      # Number of reserved words
 txmax = 100    # Length of identifier table
 nmax = 14      # Max number of digits in number
 al = 10        # Length of identifiers
@@ -240,11 +240,12 @@ def Interpret():
         elif instr.cmd == "LDA":
             topStack[stackIndex] += 1
             globalStack[stackIndex][topStack[stackIndex]] = Base(instr.statLinks, baseStack[stackIndex], stackIndex) + instr.value
+        #     COB COMMAND
         elif instr.cmd == "COB":
             makeConcurrent = True
+        #     COE COMMAND
         elif instr.cmd == "COE":
             if stackIndex > 0: # If we aren't in the main stack
-                print '********** DELETING A STACK **********'
                 del globalStack[stackIndex]  # delete ALL the things
                 del topStack[stackIndex]
                 del posStack[stackIndex]
@@ -255,15 +256,28 @@ def Interpret():
             else:
                 makeConcurrent = False
                 if concurrent == True:
-                    print '*** WAITING ON CONCURRENCY *** '
                     posStack[stackIndex] -= 1
-        elif instr.cmd == "CPJ":
+        #     CPJ COMMAND
+        elif instr.cmd == "CPJ":    # Just a concurrent specific jump
             topStack[stackIndex] += 1
             if stackIndex > 0:
                 globalStack[stackIndex][topStack[stackIndex]] = 0
             else:
                 globalStack[stackIndex][topStack[stackIndex]] = 1
-        print 'thing is ' + str(posStack[stackIndex])
+        # Adding the whole semaphore thing right here
+        #     SWT COMMAND
+        elif instr.cmd == "SWT": # Semaphore wait
+            # We already have the value of the semaphore on the top of the stack.
+            # Let's grab that and see what the value is.
+            semaphoreValue = globalStack[stackIndex][topStack[stackIndex]]
+            print semaphoreValue
+            if semaphoreValue <= 0:
+                # Just go back a command until it isn't, fool.
+                posStack[stackIndex] -= 2
+        #     SSG COMMAND
+        elif instr.cmd == "SSG": # Semaphore signal
+            globalStack[stackIndex][topStack[stackIndex]] += 1
+        # End semaphore additions
         if posStack[stackIndex] == 0:
             break
     print >>outfile, "\n\nEnd PL/0\n"
@@ -348,6 +362,8 @@ def error(num, sym='Undefined', tx=-9999):
         errorMessage = "Error on line number: " + str(lineNumber) + " on " + sym + "\nMust be a function." 
     elif num == 35:
         errorMessage = "Error on line number: " + str(lineNumber) + " on " + sym + "\nCannot assign const or number to reference."
+    elif num == 36:
+        errorMessage = "Error on line number: " + str(lineNumber) + " on " + sym + "\nYou can't directly modify a semaphore. Must use built in functions."
     elif num == 666:
         errorMessage = "Error on line number: " + str(lineNumber) + " on " + sym + "\nThis error message actually hasn't been implemented yet. So there's that."
     elif num == 404:
@@ -388,7 +404,7 @@ def getsym():
                 break
         id = "".join(a)
         flag = 0
-        for i in range(0, norw):
+        for i in range(0, len(rword)): # WHY THE HECK should I have to manually keep track of the length of a list in python?
             if rword[i] == id:
                 sym = rword[i]
                 flag = 1
@@ -467,6 +483,9 @@ def enter(tx, k, level, dx):
     elif k == "reference":
         x = tableValue(id, k, level, dx, "NULL")
         dx += 1
+    elif k == "semaphore":
+        x = tableValue(id, k, level, dx, "NULL")
+        dx += 1
     table.append(x)
     return dx
 
@@ -519,6 +538,16 @@ def refparamdeclaration(tx, level, dx, tx0):
         error(4, sym, tx) # TODO: Create error for whatever this is
     return dx
 
+#----------- Semaphore Parameter ------------------------------- #
+def semaphoreparamdeclaration(tx, level, dx):
+    global sym;
+    if sym == "ident":
+        dx = enter(tx, "semaphore", level, dx)
+        getsym()
+    else:
+        error(4, sym, tx) # TODO: Create error for whatever this is
+    return dx
+
 #-------------BLOCK--------------------------------------------- # 
 def block(tableIndex, level):
     global sym, id, codeIndx, codeIndx0, inFuncBody;
@@ -528,13 +557,12 @@ def block(tableIndex, level):
     dx = 3
     cx1 = codeIndx
     gen("JMP", 0 , 0)
-    # Value and reference parameters
     if level > 0:
         if sym == "lparen":
             getsym()
             while True:
-                if sym != "VAL" and sym != "REF":
-                    error(38)
+                if sym != "VAL" and sym != "REF": 
+                    error(38) 
                 temp = sym
                 getsym()
                 while True:
@@ -558,8 +586,7 @@ def block(tableIndex, level):
         elif sym != "semicolon":
             error(35)
         getsym()
-
-    while sym == "PROCEDURE" or sym == "VAR" or sym == "CONST" or sym == "FUNCTION": 
+    while sym == "PROCEDURE" or sym == "VAR" or sym == "CONST" or sym == "FUNCTION" or sym == "SEMAPHORE": 
         if sym == "CONST":
             while True:               #makeshift do while in python
                 getsym()
@@ -578,7 +605,17 @@ def block(tableIndex, level):
             if sym != "semicolon":
                 error(10, sym, tx)
             getsym()
-        # Adding function here
+        # Semaphore decleration
+        if sym == "SEMAPHORE":
+            while True:
+                getsym()
+                dx = semaphoreparamdeclaration(tx, level, dx)
+                if sym != "comma":
+                    break
+            if sym != "semicolon":
+                error(666, sym, tx)
+            getsym()
+        # End semaphore stuff
         while sym == "PROCEDURE" or sym == "FUNCTION":
             savedSym = sym
             getsym()
@@ -591,9 +628,6 @@ def block(tableIndex, level):
                 getsym()
             else:
                 error(4, sym, tx)
-            # if sym != "semicolon":    # Removed this. Well. Sorta.
-            #     error(10, sym, tx)
-            #getsym()
             block(tx[0], level+ 1)
             if savedSym == "FUNCTION":
                 inFuncBody = "NULL"
@@ -618,6 +652,8 @@ def statement(tx, level):
         symType = table[i].kind
         if i==0:
             error(11, sym, tx)
+        elif table[i].kind == "semaphore":
+            error(36, sym, tx)
         elif table[i].kind != "variable" and table[i].kind != "function" and table[i].kind != "value" and table[i].kind != "reference":
             error(12, sym, tx) # Not sure about this else if condition. Looks janky.
         if table[i].kind == "function" and inFuncBody != id:
@@ -877,9 +913,105 @@ def statement(tx, level):
             getsym()
         getsym()
     ##
-    #
+    #  SEMAPORE INITALIZATION
     ##
-    
+    #   So, the way this works is that I can declare a semaphore as a type of VAR. Then I pass it to 
+    # seminit to give it a value. After it's given a value, I can then wait or signal on that semaphore.
+    # A wait just checks if the sem's value is <= 0. If it is, then decrement the value of the sem and
+    # <do semaphore shit>. A signal just increments the value of the sem. Not sure what to do to actually
+    # block everything though.
+    elif sym == "SEMINIT":
+        # If we get semapore_init, we need to first get the two variables (sem and value).
+        getsym()
+        if sym != "lparen":
+            error(27, sym, tx)
+        # We've got the lparam. Next var is the semaphore.
+        getsym()
+        if sym != "ident":
+            error(28, tx, id)
+        i = position(tx, id)
+        if table[i].kind != "semaphore":
+            print 'Inside not a semaphore error.'
+            error(666, sym, tx)
+        if i==0:
+            error(11, sym, tx)
+        getsym() # Now get the comma in between vars.
+        if sym != "comma":
+            print 'You need a comma between params'
+            error(666, sym, tx)
+        getsym() # Gets the value that we're going to be putting into the semaphore
+        expression(tx, level) # maybe?
+        # Now I've got the expression value on top of the stack. So I need to store the
+        # value into the semaphore.
+        gen("STO", level -table[i].level, table[i].adr)
+        if sym != "rparen":
+            error(22, sym, tx)
+        getsym()
+
+    ##
+    #  SEMAPHORE WAIT
+    ##
+    elif sym == "SEMWAIT":
+        # First thing we need to do is grab the parameter (the sem we're working on).
+        getsym()
+        if sym != "lparen":
+            error(27, sym, tx)
+        getsym()
+        if sym != "ident":
+            error(28, tx, id)
+        i = position(tx, id)
+        if table[i].kind != "semaphore":
+            print 'Inside not a semaphore error.'
+            error(666, sym, tx)
+        if i == 0:
+            error(11, sym, tx)
+        # So now at this point we have the actual semaphore and can do stuff with it.
+        # The first thing we do is decrement the value. If it becomes negative, the process executing wait is blocked
+        # and added to the semaphore's queue. (still need to implement that)
+        # gen("LIT", 0, 1)
+        # gen("OPR", 0, 2) # Decrement (probably)
+        # # If it's negative, block it (by adding it to the semaphore queue, whatever that is)
+        # gen("LIT", 0, 0)
+        # gen("OPR", 0, 13) # <= 0
+        # gen("JPC", 0, 0) # Then we'll block the process by adding to the queue #fix this later
+        # # Otherwise, we'll need to switch to this process and start doing things
+        gen("LOD",  level -table[i].level, table[i].adr)
+        gen("LIT", 0, 1)
+        gen("OPR", 0, 3) # Decrement (probably)
+        gen("STO", level -table[i].level, table[i].adr)
+        gen("SWT", 0, 0)
+        getsym()
+        if sym != "rparen":
+            error(22, sym, tx)
+        getsym()
+
+    ##
+    #  SEMAPHORE SIGNAL
+    ##
+    elif sym == "SEMSIGNAL":
+        # The first thing we need to do is grab the parameter (the sem we're working on).
+        getsym()
+        if sym != "lparen":
+            error(27, sym, tx)
+        getsym()
+        if sym != "ident":
+            error(28, tx, id)
+        i = position(tx, id)
+        if table[i].kind != "semaphore":
+            print 'Inside not a semaphore error.'
+            error(666, sym, tx)
+        if i == 0:
+            error(11, sym, tx)
+        # So now we have the semaphore. We increment the value. After the increment, if the pre-increment value was negative (meaning there
+        # are processes waiting for a resource), it transfers a blocked processes from the semaphore's waiting queue to the ready queue.
+        # gen("LIT", 0, 1)
+        # gen("OPR", 0, 2) # Increment (probably)
+        gen("LOD",  level -table[i].level, table[i].adr)
+        gen("SSG", 0, 0)
+        getsym()
+        if sym != "rparen":
+            error(22, sym, tx)
+        getsym()
 
 #--------------EXPRESSION--------------------------------------
 def expression(tx, level):
@@ -1047,6 +1179,9 @@ rword.append('COBEGIN')
 rword.append('COEND')
 # Semaphore
 rword.append('SEMAPHORE')
+rword.append('SEMINIT')
+rword.append('SEMWAIT')
+rword.append('SEMSIGNAL')
 # End semaphore
 
 ssym = {'+' : "plus",
@@ -1067,8 +1202,9 @@ ssym = {'+' : "plus",
             ':' : "colon",
             'or' : "or",
             'and' : "and",
-            'val' : "VAR",
-            'ref' : "REF",}
+            'val' : "VAL", # This was wrong in previous versions. Changing it has no effect. Sigh.
+            'ref' : "REF",
+            'SEMAPHORE' : "SEMAPHORE"}
 
 lineNumber = 1
 charcnt = 0

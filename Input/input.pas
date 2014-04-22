@@ -6,39 +6,33 @@ VAR Q;
 VAR K;
 VAR R;
 
-PROCEDURE PRINTA;
+CONST W = 9;
+
+SEMAPHORE L;
+
+PROCEDURE PRINTVAL(VAL X);
   BEGIN
-    FOR A := 1 TO 5 DO
-        WRITE(Q);
+    SEMWAIT(L);
+    FOR A := 1 TO 10 DO
+        WRITE(X);
+    SEMSIGNAL(L);
   END;
 
 PROCEDURE PRINTB;
   BEGIN
     FOR B := 1 TO 5 DO
-        WRITELN(K);
-  END;
-
-PROCEDURE PRINTC;
-  BEGIN
-    FOR C := 1 TO 5 DO
-        WRITE(P);
+        WRITE(K);
   END;
 
 BEGIN
 	Q := 666;
-	K := 999;
-  P := 111;
+	K := 0;
+
+  SEMINIT(L, 1);
 
 	COBEGIN
-   	CALL PRINTA;
-   	CALL PRINTB;
-    P := 222;
-    Q := 888;
-    K := 777;
-    CALL PRINTA;
-    CALL PRINTB;
-    CALL PRINTC;
-
+   	CALL PRINTVAL(Q);
+    CALL PRINTVAL(K);
   COEND;
 
   R := 4;
